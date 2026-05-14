@@ -1,0 +1,1673 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Goaldle</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;700;900&family=Noto+Sans+Arabic:wght@400;700&family=Noto+Sans+Hebrew:wght@400;700&family=Noto+Sans+SC:wght@400;700&family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --accent:      #facc15;
+  --bg:          #0f172a;
+  --surface:     #1e293b;
+  --surface2:    #334155;
+  --text:        #e2e8f0;
+  --text-muted:  #94a3b8;
+  --pitch-a:     #2a6038;
+  --pitch-b:     #2c6840;
+  --pass-color:  #fde100;
+  --shot-color:  #ffffff;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Noto Sans', 'Segoe UI', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  padding-bottom: 80px;
+}
+
+/* ── HEADER ── */
+header {
+  text-align: center;
+  padding: 24px 20px 14px;
+  border-bottom: 1px solid var(--surface);
+  margin-bottom: 4px;
+  position: relative;
+}
+header h1 { font-size: 2.1rem; font-weight: 900; letter-spacing: 7px; color: var(--accent); }
+header p  { font-size: .76rem; color: #64748b; margin-top: 5px; letter-spacing: 1px; }
+
+/* ── WRAP ── */
+.wrap { max-width: 1040px; margin: 0 auto; padding: 0 20px; }
+
+/* ── PUZZLE DROPDOWN ── */
+.puzzle-picker {
+  display: flex; align-items: center; gap: 12px;
+  margin: 20px 0 0;
+}
+.pp-lbl {
+  font-size: .65rem; font-weight: 800; letter-spacing: 2px;
+  text-transform: uppercase; color: var(--text-muted); white-space: nowrap; flex-shrink: 0;
+}
+.pp-select {
+  flex: 1; background: var(--surface); border: 2px solid var(--surface2);
+  color: var(--text); font-size: .88rem; font-weight: 600; padding: 9px 36px 9px 14px;
+  border-radius: 9px; outline: none; cursor: pointer;
+  appearance: none; -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%2394a3b8' stroke-width='1.8' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 13px center;
+  transition: border-color .15s;
+}
+.pp-select:hover, .pp-select:focus { border-color: var(--accent); }
+.pp-select option { background: var(--surface); color: var(--text); }
+
+/* ── HINTS ── */
+.hints-bar { display: flex; gap: 10px; flex-wrap: wrap; margin: 14px 0 16px; }
+.hint-chip {
+  background: #132008; border: 1px solid #2d5016;
+  color: #86efac; font-size: .75rem; font-weight: 700;
+  padding: 6px 15px; border-radius: 999px; letter-spacing: .4px;
+}
+
+/* ── GAME AREA ── */
+.game-area { display: flex; gap: 20px; align-items: flex-start; }
+.field-side { flex: 1; min-width: 0; }
+.insp-side  { width: 300px; flex-shrink: 0; position: sticky; top: 20px; }
+
+/* ── PITCH ── */
+.scene-wrap {
+  background: #081a0c; border-radius: 14px;
+  overflow: hidden; box-shadow: 0 6px 32px #00000060;
+}
+#scene { display: block; width: 100%; }
+
+/* SVG interactive states */
+.cp { cursor: pointer; }
+.cp:hover circle { filter: brightness(1.28) drop-shadow(0 0 7px color-mix(in srgb, var(--accent) 50%, transparent)); }
+.cp.sel circle   { stroke: var(--accent) !important; stroke-width: 3.5 !important; }
+.cc { cursor: pointer; }
+.cc:hover .cb { opacity: 1 !important; }
+.cc.sel   .cb { stroke: var(--accent); stroke-width: 1.5; opacity: 1 !important; }
+
+/* ── INSPECTOR ── */
+.inspector {
+  background: var(--surface); border: 2px solid var(--surface2);
+  border-radius: 14px; transition: border-color .2s; min-height: 300px;
+}
+.inspector.live { border-color: var(--accent); }
+
+.insp-empty {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 36px 24px; min-height: 300px; color: #475569; text-align: center; gap: 12px;
+}
+.insp-empty svg { opacity: .35; }
+.insp-empty p { font-size: .84rem; line-height: 1.6; }
+
+.insp-hdr {
+  padding: 14px 18px 12px; background: var(--bg);
+  border-bottom: 1px solid var(--surface2); border-radius: 12px 12px 0 0;
+}
+.insp-role { font-size: .63rem; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; color: var(--accent); }
+.insp-info { font-size: .8rem; color: var(--text-muted); margin-top: 3px; }
+
+.insp-body { padding: 18px 18px 20px; }
+.insp-field { margin-bottom: 16px; }
+.insp-field:last-child { margin-bottom: 0; }
+.insp-field label {
+  display: block; font-size: .63rem; font-weight: 700;
+  letter-spacing: 1.1px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px;
+}
+.insp-input {
+  width: 100%; background: var(--bg); border: 1px solid var(--surface2);
+  color: var(--text); padding: 9px 12px; border-radius: 8px;
+  font-size: .9rem; outline: none; transition: border-color .15s;
+}
+.insp-input:focus { border-color: var(--accent); }
+@keyframes fi { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
+.insp-body { animation: fi .14s ease; }
+
+/* ── KIT PICKER ── */
+.kit-wrap { position: relative; }
+.kit-btn {
+  width: 100%; display: flex; align-items: center; gap: 10px;
+  background: var(--bg); border: 1px solid var(--surface2); border-radius: 8px;
+  padding: 9px 12px; cursor: pointer; text-align: left; transition: border-color .15s;
+}
+.kit-btn:hover { border-color: var(--accent); }
+.kit-swatch { width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0; background: var(--surface2); border: 2px solid #475569; transition: background .15s; }
+.kit-lbl { flex: 1; font-size: .88rem; color: #64748b; }
+.kit-lbl.on { color: var(--text); }
+.kit-chev { color: #64748b; font-size: .7rem; }
+.kit-drop {
+  display: none; position: absolute; z-index: 200;
+  left: 0; right: 0; top: calc(100% + 6px);
+  background: var(--surface); border: 1px solid var(--surface2);
+  border-radius: 10px; box-shadow: 0 12px 40px #00000090; overflow: hidden;
+}
+.kit-drop.open { display: block; }
+.kit-search {
+  width: 100%; padding: 9px 13px; background: var(--bg);
+  border: none; border-bottom: 1px solid var(--surface2);
+  color: var(--text); font-size: .86rem; outline: none;
+}
+.kit-search::placeholder { color: #475569; }
+.kit-list { max-height: 220px; overflow-y: auto; }
+.kit-list::-webkit-scrollbar { width: 5px; }
+.kit-list::-webkit-scrollbar-track { background: var(--bg); }
+.kit-list::-webkit-scrollbar-thumb { background: var(--surface2); border-radius: 3px; }
+.kit-row { display: flex; align-items: center; gap: 10px; padding: 8px 13px; cursor: pointer; transition: background .08s; }
+.kit-row:hover { background: var(--surface2); }
+.kit-row.hi    { background: #1d3a5f; }
+.kit-dot { width: 18px; height: 18px; border-radius: 50%; flex-shrink: 0; }
+.kit-row-lbl  { font-size: .83rem; color: #cbd5e1; }
+.kit-row-type { font-size: .69rem; color: #64748b; margin-left: auto; flex-shrink: 0; }
+
+/* ── PROGRESS ── */
+.prog-row { display: flex; align-items: center; gap: 12px; margin: 18px 0 12px; }
+.prog-lbl { font-size: .75rem; color: #64748b; white-space: nowrap; }
+.prog-track { flex: 1; height: 5px; background: var(--surface); border-radius: 3px; overflow: hidden; }
+.prog-fill { height: 100%; background: var(--accent); border-radius: 3px; transition: width .35s ease; width: 0; }
+
+/* ── SUBMIT ── */
+#submitBtn {
+  display: block; width: 100%; padding: 15px;
+  background: var(--accent); color: var(--bg); border: none; border-radius: 10px;
+  font-size: .95rem; font-weight: 900; letter-spacing: 3px;
+  cursor: pointer; transition: filter .15s, transform .1s;
+}
+#submitBtn:hover:not(:disabled) { filter: brightness(1.1); transform: translateY(-1px); }
+#submitBtn:disabled { opacity: .4; cursor: default; }
+
+/* ── MODAL ── */
+#modal { display: none; position: fixed; inset: 0; background: #000000aa; z-index: 500; align-items: center; justify-content: center; }
+#modal.show { display: flex; }
+#mbox { background: var(--surface); border: 2px solid var(--surface2); border-radius: 16px; padding: 32px 36px; text-align: center; max-width: 340px; width: 90%; box-shadow: 0 24px 60px #000000cc; }
+#mbox h2  { font-size: 1.5rem; color: var(--accent); margin-bottom: 4px; }
+#mscr     { font-size: 2.8rem; font-weight: 900; margin: 10px 0 4px; }
+#mlbl     { color: #64748b; font-size: .85rem; }
+#mbox button { background: var(--surface2); color: var(--text); border: none; padding: 10px 24px; border-radius: 8px; cursor: pointer; margin-top: 16px; font-size: .9rem; }
+#mbox button:hover { background: #475569; }
+
+/* ── ATTEMPTS ── */
+.attempt-row { display: flex; align-items: center; gap: 12px; margin: 0 0 14px; }
+.attempt-lbl { font-size: .75rem; color: #64748b; white-space: nowrap; min-width: 96px; }
+.attempt-pips { display: flex; gap: 7px; }
+.pip { display: inline-block; width: 13px; height: 13px; border-radius: 50%; background: var(--surface); border: 1.5px solid var(--surface2); transition: background .25s, border-color .25s; }
+.pip.used   { background: var(--accent); border-color: var(--accent); }
+.pip.won    { background: #22c55e; border-color: #22c55e; }
+.pip.lost   { background: #ef4444; border-color: #ef4444; }
+
+/* ── FIELD FEEDBACK ── */
+.insp-field.fr-correct   { border-left: 3px solid #22c55e; padding-left: 9px; border-radius: 2px; }
+.insp-field.fr-partial   { border-left: 3px solid #f59e0b; padding-left: 9px; border-radius: 2px; }
+.insp-field.fr-incorrect { border-left: 3px solid #ef4444; padding-left: 9px; border-radius: 2px; }
+.insp-field.fr-correct   .insp-input { border-color: #22c55e55; }
+.insp-field.fr-partial   .insp-input { border-color: #f59e0b55; }
+.insp-field.fr-incorrect .insp-input { border-color: #ef444455; }
+.insp-field.fr-correct   .kit-btn { border-color: #22c55e55; }
+.insp-field.fr-partial   .kit-btn { border-color: #f59e0b55; }
+.insp-field.fr-incorrect .kit-btn { border-color: #ef444455; }
+
+/* ── MOBILE ── */
+@media (max-width: 700px) {
+  .game-area { flex-direction: column; }
+  .insp-side { width: 100%; position: static; }
+  .inspector { min-height: auto; }
+  .insp-empty { min-height: 120px; padding: 20px; }
+}
+
+/* ══════════════════════════════════════════════
+   LEGEND
+══════════════════════════════════════════════ */
+/* ── LANGUAGE SELECTOR ── */
+#langSelector {
+  position: fixed; top: 20px; right: 70px; z-index: 400;
+}
+#langDrop {
+  height: 36px; padding: 0 28px 0 10px; border-radius: 9px;
+  background: var(--surface); border: 2px solid var(--surface2);
+  color: var(--text-muted); font-size: .75rem; font-weight: 700;
+  letter-spacing: 1px; cursor: pointer; outline: none;
+  appearance: none; -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='7' viewBox='0 0 10 7'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%2394a3b8' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 9px center;
+  box-shadow: 0 4px 16px #00000060; transition: border-color .15s, color .15s;
+}
+#langDrop:hover, #langDrop:focus { border-color: var(--accent); color: var(--accent); }
+#langDrop option { background: var(--surface); color: var(--text); }
+
+/* ── RTL SUPPORT ── */
+html[dir="rtl"] #langSelector { right: auto; left: 70px; }
+html[dir="rtl"] #legendBtn    { right: auto; left: 24px; }
+html[dir="rtl"] #legendPanel  { right: auto; left: 24px; }
+html[dir="rtl"] #adminToggle  { right: auto; left: 24px; }
+html[dir="rtl"] #adminPanel   { right: auto; left: 24px; }
+html[dir="rtl"] .insp-field   { text-align: right; }
+html[dir="rtl"] .insp-field.fr-correct,
+html[dir="rtl"] .insp-field.fr-partial,
+html[dir="rtl"] .insp-field.fr-incorrect { border-left: none; padding-left: 0; border-right: 3px solid; padding-right: 9px; }
+html[dir="rtl"] .insp-field.fr-correct   { border-right-color: #22c55e; }
+html[dir="rtl"] .insp-field.fr-partial   { border-right-color: #f59e0b; }
+html[dir="rtl"] .insp-field.fr-incorrect { border-right-color: #ef4444; }
+
+#legendBtn {
+  position: fixed; top: 20px; right: 24px; z-index: 400;
+  width: 36px; height: 36px; border-radius: 50%;
+  background: var(--surface); border: 2px solid var(--surface2);
+  color: var(--text-muted); font-size: .9rem; font-weight: 900;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 16px #00000060; transition: border-color .15s, color .15s;
+  user-select: none;
+}
+#legendBtn:hover { border-color: var(--accent); color: var(--accent); }
+
+#legendPanel {
+  position: fixed; top: 64px; right: 24px; z-index: 400; width: 248px;
+  background: var(--surface); border: 2px solid var(--surface2);
+  border-radius: 14px; box-shadow: 0 16px 48px #000000aa;
+  transform: translateY(-8px) scale(.97); opacity: 0; pointer-events: none;
+  transition: transform .18s ease, opacity .18s ease;
+  overflow: hidden;
+}
+#legendPanel.open { transform: translateY(0) scale(1); opacity: 1; pointer-events: auto; }
+
+.lgd-hdr {
+  padding: 10px 14px; background: var(--bg);
+  border-bottom: 1px solid var(--surface2);
+  font-size: .66rem; font-weight: 800; letter-spacing: 2px;
+  text-transform: uppercase; color: var(--accent);
+}
+.lgd-body { padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 7px; }
+.lgd-section {
+  font-size: .58rem; font-weight: 800; letter-spacing: 1.8px;
+  text-transform: uppercase; color: var(--text-muted); margin-top: 5px;
+}
+.lgd-item { display: flex; align-items: center; gap: 10px; }
+.lgd-icon { flex-shrink: 0; display: flex; align-items: center; justify-content: center; width: 40px; }
+.lgd-item span { font-size: .74rem; color: var(--text-muted); line-height: 1.3; }
+.lgd-div { border: none; border-top: 1px solid var(--surface2); margin: 3px 0; }
+
+/* ══════════════════════════════════════════════
+   ADMIN PANEL
+══════════════════════════════════════════════ */
+#adminToggle {
+  position: fixed; bottom: 24px; right: 24px; z-index: 400;
+  width: 44px; height: 44px; border-radius: 50%;
+  background: var(--surface); border: 2px solid var(--surface2);
+  color: var(--text-muted); font-size: 1.1rem;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 16px #00000060; transition: border-color .15s, color .15s;
+}
+#adminToggle:hover { border-color: var(--accent); color: var(--accent); }
+
+#adminPanel {
+  position: fixed; bottom: 80px; right: 24px; z-index: 400; width: 280px;
+  background: var(--surface); border: 2px solid var(--surface2);
+  border-radius: 14px; box-shadow: 0 16px 48px #000000aa; overflow: hidden;
+  transform: translateY(12px) scale(.97); opacity: 0; pointer-events: none;
+  transition: transform .18s ease, opacity .18s ease;
+}
+#adminPanel.open { transform: translateY(0) scale(1); opacity: 1; pointer-events: auto; }
+
+.adm-hdr { padding: 12px 16px; background: var(--bg); border-bottom: 1px solid var(--surface2); font-size: .7rem; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; color: var(--accent); }
+.adm-section { font-size: .58rem; font-weight: 800; letter-spacing: 1.8px; text-transform: uppercase; color: var(--text-muted); padding: 8px 16px 4px; }
+.adm-body { padding: 4px 16px 16px; display: flex; flex-direction: column; gap: 10px; }
+.adm-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.adm-lbl { font-size: .78rem; color: var(--text-muted); flex: 1; }
+.adm-swatch-btn { width: 32px; height: 32px; border-radius: 6px; border: 2px solid var(--surface2); cursor: pointer; padding: 0; flex-shrink: 0; position: relative; overflow: hidden; }
+.adm-swatch-btn input[type="color"] { position: absolute; inset: -4px; opacity: 0; cursor: pointer; width: 200%; height: 200%; }
+.adm-divider { border: none; border-top: 1px solid var(--surface2); }
+.adm-reset { width: 100%; padding: 8px; border-radius: 7px; background: transparent; border: 1px solid var(--surface2); color: var(--text-muted); font-size: .78rem; cursor: pointer; transition: border-color .15s, color .15s; margin-top: 4px; }
+.adm-reset:hover { border-color: var(--accent); color: var(--accent); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>⚽ GOALDLE</h1>
+  <p>Click a player or card on the pitch · fill in the details · submit</p>
+</header>
+
+<!-- LEGEND BUTTON + PANEL (fixed top-right) -->
+<div id="langSelector">
+  <select id="langDrop" onchange="applyLang(this.value)">
+    <option value="en">🌐 EN</option>
+    <option value="es">ES</option>
+    <option value="ar">AR</option>
+    <option value="he">HE</option>
+    <option value="ru">RU</option>
+    <option value="zh">ZH</option>
+    <option value="ja">JA</option>
+  </select>
+</div>
+<button id="legendBtn" title="Diagram Legend" onclick="toggleLegend()">?</button>
+<div id="legendPanel">
+  <div class="lgd-hdr" id="lgdHdr">Diagram Legend</div>
+  <div class="lgd-body" id="lgdBody"></div>
+</div>
+
+<div class="wrap">
+
+  <div class="puzzle-picker">
+    <span class="pp-lbl" id="ppLbl">Puzzle</span>
+    <select id="puzzleDrop" class="pp-select" onchange="loadPuzzle(+this.value)"></select>
+  </div>
+
+  <div class="hints-bar" id="hintsBar"></div>
+
+  <div class="game-area">
+
+    <!-- ═══ PITCH ═══ -->
+    <div class="field-side">
+    <div class="scene-wrap">
+    <svg id="scene" viewBox="0 0 700 440" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <pattern id="sg" x="0" y="0" width="60" height="440" patternUnits="userSpaceOnUse">
+        <rect width="30" height="440" fill="var(--pitch-a)"/>
+        <rect x="30" width="30" height="440" fill="var(--pitch-b)"/>
+      </pattern>
+      <filter id="sh"><feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity=".5"/></filter>
+      <filter id="gl"><feGaussianBlur stdDeviation="2.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    </defs>
+
+    <!-- pitch background -->
+    <rect width="700" height="440" fill="url(#sg)"/>
+    <rect x="128" y="56" width="444" height="352" fill="none" stroke="#fff" stroke-width="1.8" opacity=".38"/>
+    <rect x="234" y="56" width="232" height="94" fill="none" stroke="#fff" stroke-width="1.3" opacity=".26"/>
+    <circle cx="350" cy="220" r="4" fill="#fff" opacity=".38"/>
+    <path d="M240,342 A115,115 0 0,0 460,342" fill="none" stroke="#fff" stroke-width="1.3" opacity=".2"/>
+
+    <!-- goal net -->
+    <rect x="228" y="3" width="244" height="58" fill="#060e08" stroke="#556" stroke-width="1"/>
+    <g stroke="#334" stroke-width=".6" opacity=".9">
+      <line x1="228" y1="21" x2="472" y2="21"/>
+      <line x1="228" y1="39" x2="472" y2="39"/>
+      <line x1="258" y1="3"  x2="258" y2="61"/>
+      <line x1="289" y1="3"  x2="289" y2="61"/>
+      <line x1="320" y1="3"  x2="320" y2="61"/>
+      <line x1="350" y1="3"  x2="350" y2="61"/>
+      <line x1="381" y1="3"  x2="381" y2="61"/>
+      <line x1="412" y1="3"  x2="412" y2="61"/>
+      <line x1="442" y1="3"  x2="442" y2="61"/>
+    </g>
+    <!-- goal posts + line -->
+    <rect x="225" y="54" width="250" height="8" rx="2" fill="#ececec"/>
+    <rect x="220" y="47" width="11" height="17" rx="2" fill="#ddd" filter="url(#sh)"/>
+    <rect x="469" y="47" width="11" height="17" rx="2" fill="#ddd" filter="url(#sh)"/>
+
+    <!-- dynamic layer: players, paths, ball -->
+    <g id="svgDynamic"></g>
+
+    <!-- ── INFO CARDS (top-left, stacked) ── -->
+    <g class="cc" id="grp-score" onclick="pick('score')">
+      <rect class="cb" x="6" y="65" width="112" height="32" rx="6" fill="#0f172a" opacity=".9"/>
+      <text x="62" y="77" text-anchor="middle" font-size="7.5" font-weight="700" fill="#facc15" letter-spacing="2" id="svgScoreLbl">SCORE</text>
+      <text x="62" y="91" text-anchor="middle" font-size="14" font-weight="900" fill="#fff" id="tScore">? – ?</text>
+    </g>
+    <g class="cc" id="grp-home" onclick="pick('home')">
+      <rect class="cb" x="6" y="101" width="112" height="32" rx="6" fill="#0f172a" opacity=".9"/>
+      <text x="62" y="113" text-anchor="middle" font-size="7.5" font-weight="700" fill="#facc15" letter-spacing="2" id="svgHomeLbl">WON</text>
+      <text x="62" y="127" text-anchor="middle" font-size="11" font-weight="700" fill="#fff" id="tHome">???</text>
+    </g>
+    <g class="cc" id="grp-away" onclick="pick('away')">
+      <rect class="cb" x="6" y="137" width="112" height="32" rx="6" fill="#0f172a" opacity=".9"/>
+      <text x="62" y="149" text-anchor="middle" font-size="7.5" font-weight="700" fill="#facc15" letter-spacing="2" id="svgAwayLbl">LOST</text>
+      <text x="62" y="163" text-anchor="middle" font-size="11" font-weight="700" fill="#fff" id="tAway">???</text>
+    </g>
+
+    </svg>
+    </div>
+    </div>
+
+    <!-- ═══ INSPECTOR ═══ -->
+    <div class="insp-side">
+    <div class="inspector" id="inspector">
+      <div class="insp-empty" id="inspEmpty">
+        <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="8" x2="12" y2="12"/>
+          <circle cx="12" cy="16" r=".6" fill="currentColor"/>
+        </svg>
+        <p id="inspEmptyTxt">Click a <strong style="color:#94a3b8">player circle</strong> or an <strong style="color:#94a3b8">info card</strong> on the pitch to fill in its details</p>
+      </div>
+      <div id="inspBody" style="display:none"></div>
+    </div>
+    </div>
+
+  </div><!-- /game-area -->
+
+  <div class="prog-row">
+    <span class="prog-lbl" id="progLbl">0 / 9 filled</span>
+    <div class="prog-track"><div class="prog-fill" id="progFill"></div></div>
+  </div>
+
+  <div class="attempt-row">
+    <span class="attempt-lbl" id="attemptLbl">Attempt 1 of 5</span>
+    <div class="attempt-pips" id="attemptPips">
+      <span class="pip"></span><span class="pip"></span><span class="pip"></span><span class="pip"></span><span class="pip"></span>
+    </div>
+  </div>
+
+  <button id="submitBtn" onclick="doSubmit()">SUBMIT GUESS</button>
+
+</div><!-- /wrap -->
+
+<!-- MODAL -->
+<div id="modal"><div id="mbox">
+  <h2>Full Time</h2>
+  <div id="mscr"></div>
+  <p id="mlbl"></p>
+  <button id="reviewBtn" onclick="document.getElementById('modal').classList.remove('show')">Review Answers</button>
+</div></div>
+
+<!-- ADMIN TOGGLE + PANEL -->
+<button id="adminToggle" title="Theme Editor" onclick="toggleAdmin()">⚙</button>
+<div id="adminPanel">
+  <div class="adm-hdr">Theme Editor</div>
+
+  <div class="adm-section">Interface</div>
+  <div class="adm-body" style="padding-top:0">
+    <div class="adm-row"><span class="adm-lbl">Accent color</span>
+      <button class="adm-swatch-btn" id="sw-accent" style="background:#facc15"><input type="color" value="#facc15" oninput="setVar('--accent',this.value);syncSwatch('sw-accent',this.value)"/></button></div>
+    <div class="adm-row"><span class="adm-lbl">Background</span>
+      <button class="adm-swatch-btn" id="sw-bg" style="background:#0f172a"><input type="color" value="#0f172a" oninput="setVar('--bg',this.value);syncSwatch('sw-bg',this.value)"/></button></div>
+    <div class="adm-row"><span class="adm-lbl">Card / panel</span>
+      <button class="adm-swatch-btn" id="sw-surface" style="background:#1e293b"><input type="color" value="#1e293b" oninput="setVar('--surface',this.value);syncSwatch('sw-surface',this.value)"/></button></div>
+    <div class="adm-row"><span class="adm-lbl">Borders</span>
+      <button class="adm-swatch-btn" id="sw-surface2" style="background:#334155"><input type="color" value="#334155" oninput="setVar('--surface2',this.value);syncSwatch('sw-surface2',this.value)"/></button></div>
+    <div class="adm-row"><span class="adm-lbl">Body text</span>
+      <button class="adm-swatch-btn" id="sw-text" style="background:#e2e8f0"><input type="color" value="#e2e8f0" oninput="setVar('--text',this.value);syncSwatch('sw-text',this.value)"/></button></div>
+    <div class="adm-row"><span class="adm-lbl">Muted text</span>
+      <button class="adm-swatch-btn" id="sw-muted" style="background:#94a3b8"><input type="color" value="#94a3b8" oninput="setVar('--text-muted',this.value);syncSwatch('sw-muted',this.value)"/></button></div>
+  </div>
+
+  <div class="adm-section" style="padding-top:4px">Diagram</div>
+  <div class="adm-body" style="padding-top:0">
+    <div class="adm-row"><span class="adm-lbl">Pass / run path</span>
+      <button class="adm-swatch-btn" id="sw-pass" style="background:#fde100"><input type="color" value="#fde100" oninput="setVar('--pass-color',this.value);syncSwatch('sw-pass',this.value)"/></button></div>
+    <div class="adm-row"><span class="adm-lbl">Shot path</span>
+      <button class="adm-swatch-btn" id="sw-shot" style="background:#ffffff"><input type="color" value="#ffffff" oninput="setVar('--shot-color',this.value);syncSwatch('sw-shot',this.value)"/></button></div>
+    <div class="adm-row"><span class="adm-lbl">Pitch (light stripe)</span>
+      <button class="adm-swatch-btn" id="sw-pa" style="background:#2c6840"><input type="color" value="#2c6840" oninput="setVar('--pitch-b',this.value);syncSwatch('sw-pa',this.value);updatePitchPattern()"/></button></div>
+    <div class="adm-row"><span class="adm-lbl">Pitch (dark stripe)</span>
+      <button class="adm-swatch-btn" id="sw-pb" style="background:#2a6038"><input type="color" value="#2a6038" oninput="setVar('--pitch-a',this.value);syncSwatch('sw-pb',this.value);updatePitchPattern()"/></button></div>
+    <hr class="adm-divider"/>
+    <button class="adm-reset" onclick="resetTheme()">↺ Reset to defaults</button>
+  </div>
+</div>
+
+<script>
+/* ══════════════════════════════════════════════════════════
+   PUZZLE DATABASE
+══════════════════════════════════════════════════════════ */
+const PUZZLES = [
+  {
+    id:"goetze14", title:"#01",
+    hints:["2014 FIFA World Cup Final at the Maracanã","The scorer entered as a substitute in extra time","The goal was a first-time volley in the 113th minute"],
+    answer:{ homeTeam:"Germany", awayTeam:"Argentina", score:"1-0",
+             scorer:"Mario Götze",      scorerNum:"19", scorerKit:"home", scorerColor:"#FFFFFF",
+             gkName:"Sergio Romero",    gkNum:"1",      gkKit:"home",    gkColor:"#808080" },
+    svg:{
+      scorer:{cx:424,cy:197,r:26}, gk:{cx:357,cy:72,r:24}, ball:{cx:407,cy:163},
+      crossPath:"M170,260 L418,173", crossEnd:{cx:418,cy:173},
+      shotArrow:{x1:424,y1:182,x2:393,y2:149,head:"387,142 391,155 399,149"},
+      shotPath:"M424,182 Q378,118 268,57",
+      extras:[{cx:170,cy:268,r:18,label:"ASSIST"},{cx:372,cy:116,r:17},{cx:304,cy:152,r:17}]
+    }
+  },
+  {
+    id:"maradona86", title:"#02",
+    hints:["1986 FIFA World Cup quarter-final in Mexico City","The scorer dribbled from inside his own half, beating 5 players before shooting","The scorer wore the number 10 shirt and won the tournament's Golden Ball award"],
+    answer:{ homeTeam:"Argentina", awayTeam:"England", score:"2-1",
+             scorer:"Diego Maradona",   scorerNum:"10", scorerKit:"home", scorerColor:"#74ACDF",
+             gkName:"Peter Shilton",    gkNum:"1",      gkKit:"home",    gkColor:"#5DBB3A" },
+    svg:{
+      scorer:{cx:272,cy:158,r:26}, gk:{cx:390,cy:72,r:24}, ball:{cx:274,cy:124},
+      crossPath:"M512,330 C480,300 440,265 396,242 C356,220 316,200 292,178 C280,168 275,162 272,158",
+      crossEnd:null, shotArrow:null,
+      shotPath:"M272,152 Q296,106 348,62",
+      extras:[{cx:448,cy:278,r:17},{cx:406,cy:248,r:17},{cx:362,cy:222,r:17},{cx:322,cy:200,r:17}]
+    }
+  },
+  {
+    id:"carlosalberto70", title:"#03",
+    hints:["1970 FIFA World Cup Final","The scorer was the team captain, playing right back (RB)","The goal capped a sweeping team move, widely called the greatest goal ever scored"],
+    answer:{ homeTeam:"Brazil", awayTeam:"Italy", score:"4-1",
+             scorer:"Carlos Alberto",   scorerNum:"2",  scorerKit:"home", scorerColor:"#FFDF00",
+             gkName:"Enrico Albertosi", gkNum:"1",      gkKit:"home",    gkColor:"#E8C800" },
+    svg:{
+      scorer:{cx:492,cy:168,r:26}, gk:{cx:345,cy:72,r:24}, ball:{cx:488,cy:134},
+      crossPath:"M392,192 L492,168", crossEnd:null,
+      shotArrow:{x1:492,y1:162,x2:462,y2:125,head:"456,118 460,131 468,125"},
+      shotPath:"M492,162 Q468,112 415,62",
+      extras:[{cx:392,cy:192,r:18,label:"ASSIST"},{cx:390,cy:132,r:17},{cx:432,cy:148,r:17}]
+    }
+  },
+  {
+    id:"vanbasten88", title:"#04",
+    hints:["1988 UEFA European Championship Final","The ball was crossed from the left byline — the scorer volleyed from a near-impossible angle on the right","Widely considered one of the greatest goals ever scored"],
+    answer:{ homeTeam:"Netherlands", awayTeam:"USSR", score:"2-0",
+             scorer:"Marco van Basten", scorerNum:"9",  scorerKit:"home", scorerColor:"#FF6600",
+             gkName:"Rinat Dasaev",     gkNum:"1",      gkKit:"home",    gkColor:"#5DBB3A" },
+    svg:{
+      scorer:{cx:544,cy:118,r:26}, gk:{cx:355,cy:72,r:24}, ball:{cx:540,cy:84},
+      crossPath:"M148,192 L544,118", crossEnd:null,
+      shotArrow:{x1:544,y1:112,x2:508,y2:86,head:"501,78 505,91 513,85"},
+      shotPath:"M544,112 Q492,78 285,60",
+      extras:[{cx:148,cy:192,r:18,label:"ASSIST"},{cx:442,cy:138,r:17},{cx:382,cy:122,r:17}]
+    }
+  },
+  {
+    id:"bergkamp98", title:"#05",
+    hints:["1998 FIFA World Cup quarter-final in Marseille","The scorer received a 60-yard pass, controlled it with one touch, and shot in a single fluid movement","The goal was scored in the 90th minute to seal a 2-1 win"],
+    answer:{ homeTeam:"Netherlands", awayTeam:"Argentina", score:"2-1",
+             scorer:"Dennis Bergkamp",  scorerNum:"10", scorerKit:"home", scorerColor:"#FF6600",
+             gkName:"Carlos Roa",       gkNum:"1",      gkKit:"home",    gkColor:"#E8C800" },
+    svg:{
+      scorer:{cx:468,cy:158,r:26}, gk:{cx:378,cy:72,r:24}, ball:{cx:466,cy:124},
+      crossPath:"M418,308 L468,158", crossEnd:null,
+      shotArrow:{x1:468,y1:152,x2:453,y2:120,head:"446,112 450,125 458,119"},
+      shotPath:"M468,152 Q458,115 440,65",
+      extras:[{cx:452,cy:145,r:17},{cx:392,cy:178,r:17}]
+    }
+  },
+  {
+    id:"zidane02", title:"#06",
+    hints:["2002 UEFA Champions League Final in Glasgow","The goal was struck with the scorer's weaker left foot","The cross was delivered by the team's Brazilian left back"],
+    answer:{ homeTeam:"Real Madrid", awayTeam:"Leverkusen", score:"2-1",
+             scorer:"Zinedine Zidane",  scorerNum:"5",  scorerKit:"home", scorerColor:"#FFFFFF",
+             gkName:"Hans-Jörg Butt",  gkNum:"1",      gkKit:"home",    gkColor:"#5DBB3A" },
+    svg:{
+      scorer:{cx:238,cy:138,r:26}, gk:{cx:368,cy:72,r:24}, ball:{cx:242,cy:104},
+      crossPath:"M148,175 L238,138", crossEnd:null,
+      shotArrow:{x1:238,y1:132,x2:268,y2:104,head:"274,97 270,110 262,104"},
+      shotPath:"M238,132 Q295,95 430,62",
+      extras:[{cx:148,cy:175,r:18,label:"ASSIST"},{cx:312,cy:155,r:17},{cx:292,cy:128,r:17}]
+    }
+  },
+  {
+    id:"aguero12", title:"#07",
+    hints:["English Premier League, final day of the 2011–12 season","The goal won the league title on goal difference in the 93rd minute","The home side were losing 2-1 before scoring twice in stoppage time"],
+    answer:{ homeTeam:"Man City", awayTeam:"QPR", score:"3-2",
+             scorer:"Sergio Agüero",    scorerNum:"16", scorerKit:"home", scorerColor:"#6CABDD",
+             gkName:"Paddy Kenny",      gkNum:"1",      gkKit:"home",    gkColor:"#E8C800" },
+    svg:{
+      scorer:{cx:402,cy:198,r:26}, gk:{cx:342,cy:72,r:24}, ball:{cx:398,cy:164},
+      crossPath:"M308,198 L402,198", crossEnd:null,
+      shotArrow:{x1:402,y1:192,x2:382,y2:155,head:"375,148 379,161 387,155"},
+      shotPath:"M402,192 Q390,140 362,68",
+      extras:[{cx:308,cy:198,r:18,label:"ASSIST"},{cx:360,cy:162,r:17},{cx:432,cy:172,r:17}]
+    }
+  },
+  {
+    id:"robertocarlos97", title:"#08",
+    hints:["Tournoi de France, June 1997","The scorer's position was left back (LB)","The free kick from 35 metres bent sharply around the wall into the top corner"],
+    answer:{ homeTeam:"Brazil", awayTeam:"France", score:"1-0",
+             scorer:"Roberto Carlos",   scorerNum:"6",  scorerKit:"home", scorerColor:"#FFDF00",
+             gkName:"Fabien Barthez",   gkNum:"1",      gkKit:"home",    gkColor:"#E8C800" },
+    svg:{
+      scorer:{cx:142,cy:178,r:26}, gk:{cx:392,cy:72,r:24}, ball:{cx:146,cy:144},
+      crossPath:null, crossEnd:null, shotArrow:null,
+      shotPath:"M142,172 C200,198 540,198 438,62",
+      extras:[{cx:218,cy:162,r:17},{cx:234,cy:162,r:17},{cx:250,cy:162,r:17},{cx:266,cy:162,r:17}]
+    }
+  },
+  {
+    id:"pele58", title:"#09",
+    hints:["1958 FIFA World Cup Final in Stockholm, Sweden","The scorer was 17 years old — the youngest ever to score in a World Cup Final","The scorer chested the ball over a defender, then volleyed into the net"],
+    answer:{ homeTeam:"Brazil", awayTeam:"Sweden", score:"5-2",
+             scorer:"Pelé",             scorerNum:"10", scorerKit:"home", scorerColor:"#FFDF00",
+             gkName:"Kalle Svensson",   gkNum:"1",      gkKit:"home",    gkColor:"#E8C800" },
+    svg:{
+      scorer:{cx:390,cy:155,r:26}, gk:{cx:352,cy:72,r:24}, ball:{cx:392,cy:121},
+      crossPath:"M182,218 L390,155", crossEnd:null,
+      shotArrow:{x1:390,y1:149,x2:376,y2:115,head:"369,108 373,121 381,115"},
+      shotPath:"M390,149 Q386,108 414,65",
+      extras:[{cx:182,cy:218,r:18,label:"ASSIST"},{cx:370,cy:140,r:17},{cx:322,cy:162,r:17}]
+    }
+  },
+  {
+    id:"james14", title:"#10",
+    hints:["2014 FIFA World Cup Round of 16 in Rio de Janeiro","The scorer controlled a chest-high cross, then volleyed with his left foot","The goal earned the scorer the tournament's Golden Boot (6 goals total)"],
+    answer:{ homeTeam:"Colombia", awayTeam:"Uruguay", score:"2-0",
+             scorer:"James Rodríguez",  scorerNum:"10", scorerKit:"home", scorerColor:"#FECC02",
+             gkName:"Fernando Muslera", gkNum:"1",      gkKit:"home",    gkColor:"#E8C800" },
+    svg:{
+      scorer:{cx:248,cy:162,r:26}, gk:{cx:368,cy:72,r:24}, ball:{cx:252,cy:128},
+      crossPath:"M480,282 L248,162", crossEnd:null,
+      shotArrow:{x1:248,y1:156,x2:272,y2:122,head:"278,114 274,127 282,121"},
+      shotPath:"M248,156 Q280,108 415,65",
+      extras:[{cx:350,cy:155,r:17},{cx:310,cy:180,r:17}]
+    }
+  }
+];
+
+/* ══════════════════════════════════════════════════════════
+   KIT DATABASE
+══════════════════════════════════════════════════════════ */
+const KDB = [
+  {l:"GK — Yellow / Gold",  t:"Goalkeeper",  k:"home", c:"#E8C800"},
+  {l:"GK — Lime Green",     t:"Goalkeeper",  k:"home", c:"#5DBB3A"},
+  {l:"GK — Orange",         t:"Goalkeeper",  k:"home", c:"#E06B00"},
+  {l:"GK — Red",            t:"Goalkeeper",  k:"home", c:"#CC1111"},
+  {l:"GK — Purple",         t:"Goalkeeper",  k:"home", c:"#702082"},
+  {l:"GK — Light Blue",     t:"Goalkeeper",  k:"home", c:"#5BC4EB"},
+  {l:"GK — Gray",           t:"Goalkeeper",  k:"home", c:"#808080"},
+  {l:"GK — White",          t:"Goalkeeper",  k:"home", c:"#FFFFFF"},
+  {l:"GK — Black",          t:"Goalkeeper",  k:"home", c:"#111111"},
+  {l:"GK — Dark Navy",      t:"Goalkeeper",  k:"home", c:"#0D2240"},
+  {l:"GK — Pink",           t:"Goalkeeper",  k:"home", c:"#E91E8C"},
+  {l:"Germany Home",          t:"Germany",      k:"home",  c:"#FFFFFF"},
+  {l:"Germany Away (Red)",    t:"Germany",      k:"away",  c:"#CC0000"},
+  {l:"Germany Away (Black)",  t:"Germany",      k:"away",  c:"#1A1A1A"},
+  {l:"Argentina Home",        t:"Argentina",    k:"home",  c:"#74ACDF"},
+  {l:"Argentina Away",        t:"Argentina",    k:"away",  c:"#002D62"},
+  {l:"Brazil Home",           t:"Brazil",       k:"home",  c:"#FFDF00"},
+  {l:"Brazil Away",           t:"Brazil",       k:"away",  c:"#003DB5"},
+  {l:"France Home",           t:"France",       k:"home",  c:"#003189"},
+  {l:"France Away",           t:"France",       k:"away",  c:"#FFFFFF"},
+  {l:"Italy Home",            t:"Italy",        k:"home",  c:"#0066CC"},
+  {l:"Italy Away",            t:"Italy",        k:"away",  c:"#FFFFFF"},
+  {l:"Spain Home",            t:"Spain",        k:"home",  c:"#C60B1E"},
+  {l:"Spain Away",            t:"Spain",        k:"away",  c:"#000080"},
+  {l:"Spain Away (Black)",    t:"Spain",        k:"away",  c:"#111111"},
+  {l:"England Home",          t:"England",      k:"home",  c:"#FFFFFF"},
+  {l:"England Away (Red)",    t:"England",      k:"away",  c:"#CC0000"},
+  {l:"England Away (Navy)",   t:"England",      k:"away",  c:"#13294B"},
+  {l:"Netherlands Home",      t:"Netherlands",  k:"home",  c:"#FF6600"},
+  {l:"Netherlands Away",      t:"Netherlands",  k:"away",  c:"#FFFFFF"},
+  {l:"Netherlands Away (Blue)",t:"Netherlands", k:"away",  c:"#003399"},
+  {l:"Portugal Home",         t:"Portugal",     k:"home",  c:"#CC0000"},
+  {l:"Portugal Away",         t:"Portugal",     k:"away",  c:"#FFFFFF"},
+  {l:"Portugal Away (Green)", t:"Portugal",     k:"away",  c:"#005F30"},
+  {l:"Uruguay Home",          t:"Uruguay",      k:"home",  c:"#5BBFEF"},
+  {l:"Uruguay Away",          t:"Uruguay",      k:"away",  c:"#111111"},
+  {l:"Belgium Home",          t:"Belgium",      k:"home",  c:"#CC0000"},
+  {l:"Belgium Away",          t:"Belgium",      k:"away",  c:"#FFFFFF"},
+  {l:"Belgium Away (Black)",  t:"Belgium",      k:"away",  c:"#111111"},
+  {l:"Croatia Home",          t:"Croatia",      k:"home",  c:"#CC0000"},
+  {l:"Croatia Away",          t:"Croatia",      k:"away",  c:"#1B3A6B"},
+  {l:"Mexico Home",           t:"Mexico",       k:"home",  c:"#006847"},
+  {l:"Mexico Away",           t:"Mexico",       k:"away",  c:"#CC0000"},
+  {l:"Poland Home",           t:"Poland",       k:"home",  c:"#FFFFFF"},
+  {l:"Poland Away",           t:"Poland",       k:"away",  c:"#CC0000"},
+  {l:"Sweden Home",           t:"Sweden",       k:"home",  c:"#006AA7"},
+  {l:"Sweden Away",           t:"Sweden",       k:"away",  c:"#FECC02"},
+  {l:"Hungary Home",          t:"Hungary",      k:"home",  c:"#CC0000"},
+  {l:"Romania Home",          t:"Romania",      k:"home",  c:"#FECC02"},
+  {l:"Romania Away",          t:"Romania",      k:"away",  c:"#003399"},
+  {l:"Scotland Home",         t:"Scotland",     k:"home",  c:"#003399"},
+  {l:"Wales Home",            t:"Wales",        k:"home",  c:"#CC0000"},
+  {l:"Rep. Ireland Home",     t:"Ireland",      k:"home",  c:"#009933"},
+  {l:"Denmark Home",          t:"Denmark",      k:"home",  c:"#CC0000"},
+  {l:"Switzerland Home",      t:"Switzerland",  k:"home",  c:"#CC0000"},
+  {l:"Turkey Home",           t:"Turkey",       k:"home",  c:"#CC0000"},
+  {l:"Greece Home",           t:"Greece",       k:"home",  c:"#003399"},
+  {l:"Serbia / Yugoslavia",   t:"Serbia",       k:"home",  c:"#CC0000"},
+  {l:"USSR / Russia Home",    t:"Russia",       k:"home",  c:"#CC0000"},
+  {l:"Czechia / ČSSR Home",   t:"Czechia",      k:"home",  c:"#CC0000"},
+  {l:"USA Home",              t:"USA",          k:"home",  c:"#FFFFFF"},
+  {l:"USA Away",              t:"USA",          k:"away",  c:"#003399"},
+  {l:"Japan Home",            t:"Japan",        k:"home",  c:"#003399"},
+  {l:"South Korea Home",      t:"South Korea",  k:"home",  c:"#CC0000"},
+  {l:"Australia Home",        t:"Australia",    k:"home",  c:"#FFDF00"},
+  {l:"Nigeria Home",          t:"Nigeria",      k:"home",  c:"#009933"},
+  {l:"Cameroon Home",         t:"Cameroon",     k:"home",  c:"#009933"},
+  {l:"Morocco Home",          t:"Morocco",      k:"home",  c:"#CC0000"},
+  {l:"Ghana Home",            t:"Ghana",        k:"home",  c:"#111111"},
+  {l:"Ivory Coast Home",      t:"Ivory Coast",  k:"home",  c:"#FF6B00"},
+  {l:"Senegal Home",          t:"Senegal",      k:"home",  c:"#009933"},
+  {l:"Colombia Home",         t:"Colombia",     k:"home",  c:"#FECC02"},
+  {l:"Chile Home",            t:"Chile",        k:"home",  c:"#CC0000"},
+  {l:"Ecuador Home",          t:"Ecuador",      k:"home",  c:"#FECC02"},
+  {l:"Iran Home",             t:"Iran",         k:"home",  c:"#FFFFFF"},
+  {l:"Saudi Arabia Home",     t:"Saudi Arabia", k:"home",  c:"#009933"},
+  {l:"Arsenal Home",          t:"Arsenal",      k:"home",  c:"#EF0107"},
+  {l:"Arsenal Away (Yellow)", t:"Arsenal",      k:"away",  c:"#FCD00D"},
+  {l:"Arsenal Away (Navy)",   t:"Arsenal",      k:"away",  c:"#023474"},
+  {l:"Man City Home",         t:"Man City",     k:"home",  c:"#6CABDD"},
+  {l:"Man City Away (Maroon)",t:"Man City",     k:"away",  c:"#660033"},
+  {l:"Man City Away (Black)", t:"Man City",     k:"away",  c:"#111111"},
+  {l:"Man Utd Home",          t:"Man Utd",      k:"home",  c:"#DA291C"},
+  {l:"Man Utd Away (White)",  t:"Man Utd",      k:"away",  c:"#F8F9FA"},
+  {l:"Man Utd Away (Black)",  t:"Man Utd",      k:"away",  c:"#111111"},
+  {l:"Man Utd Away (Gold)",   t:"Man Utd",      k:"away",  c:"#DBA13A"},
+  {l:"Man Utd Away (Grey)",   t:"Man Utd",      k:"away",  c:"#808080"},
+  {l:"Liverpool Home",        t:"Liverpool",    k:"home",  c:"#CC0000"},
+  {l:"Liverpool Away (Cream)",t:"Liverpool",    k:"away",  c:"#F5E6C0"},
+  {l:"Liverpool Away (White)",t:"Liverpool",    k:"away",  c:"#FFFFFF"},
+  {l:"Liverpool Away (Green)",t:"Liverpool",    k:"away",  c:"#00843D"},
+  {l:"Chelsea Home",          t:"Chelsea",      k:"home",  c:"#034694"},
+  {l:"Chelsea Away (Yellow)", t:"Chelsea",      k:"away",  c:"#F7D04B"},
+  {l:"Chelsea Away (White)",  t:"Chelsea",      k:"away",  c:"#FFFFFF"},
+  {l:"Tottenham Home",        t:"Tottenham",    k:"home",  c:"#FFFFFF"},
+  {l:"Tottenham Away (Navy)", t:"Tottenham",    k:"away",  c:"#132257"},
+  {l:"Everton Home",          t:"Everton",      k:"home",  c:"#003399"},
+  {l:"Newcastle Home",        t:"Newcastle",    k:"home",  c:"#111111"},
+  {l:"Leeds Utd Home",        t:"Leeds Utd",    k:"home",  c:"#FFFFFF"},
+  {l:"Aston Villa Home",      t:"Aston Villa",  k:"home",  c:"#670E36"},
+  {l:"Aston Villa Away",      t:"Aston Villa",  k:"away",  c:"#87CEEB"},
+  {l:"Leicester City Home",   t:"Leicester",    k:"home",  c:"#003090"},
+  {l:"West Ham Home",         t:"West Ham",     k:"home",  c:"#7A263A"},
+  {l:"Wolves Home",           t:"Wolves",       k:"home",  c:"#FDB913"},
+  {l:"Real Madrid Home",      t:"Real Madrid",  k:"home",  c:"#FFFFFF"},
+  {l:"Real Madrid Away (Navy)",t:"Real Madrid", k:"away",  c:"#132257"},
+  {l:"Real Madrid Away (Black)",t:"Real Madrid",k:"away",  c:"#111111"},
+  {l:"Real Madrid 3rd (Purple)",t:"Real Madrid",k:"third", c:"#7B2D8B"},
+  {l:"Real Madrid 3rd (Pink)",t:"Real Madrid",  k:"third", c:"#E91E8C"},
+  {l:"Barcelona Home",        t:"Barcelona",    k:"home",  c:"#A50044"},
+  {l:"Barcelona Away (Yellow)",t:"Barcelona",   k:"away",  c:"#F5E642"},
+  {l:"Barcelona Away (Black)",t:"Barcelona",    k:"away",  c:"#111111"},
+  {l:"Barcelona Away (Orange)",t:"Barcelona",   k:"away",  c:"#E07000"},
+  {l:"Atletico Madrid Home",  t:"Atletico",     k:"home",  c:"#CB3524"},
+  {l:"Atletico Madrid Away",  t:"Atletico",     k:"away",  c:"#FFFFFF"},
+  {l:"Valencia Home",         t:"Valencia",     k:"home",  c:"#FFFFFF"},
+  {l:"Sevilla Home",          t:"Sevilla",      k:"home",  c:"#FFFFFF"},
+  {l:"Sevilla Away",          t:"Sevilla",      k:"away",  c:"#CC0000"},
+  {l:"Real Betis Home",       t:"Real Betis",   k:"home",  c:"#00954C"},
+  {l:"Villarreal Home",       t:"Villarreal",   k:"home",  c:"#FFCD00"},
+  {l:"Juventus Home",         t:"Juventus",     k:"home",  c:"#111111"},
+  {l:"Juventus Away",         t:"Juventus",     k:"away",  c:"#FFFFFF"},
+  {l:"Juventus Away (Pink)",  t:"Juventus",     k:"away",  c:"#E91E8C"},
+  {l:"AC Milan Home",         t:"AC Milan",     k:"home",  c:"#CC0000"},
+  {l:"AC Milan Away",         t:"AC Milan",     k:"away",  c:"#FFFFFF"},
+  {l:"Inter Milan Home",      t:"Inter Milan",  k:"home",  c:"#003399"},
+  {l:"Inter Milan Away",      t:"Inter Milan",  k:"away",  c:"#111111"},
+  {l:"Napoli Home",           t:"Napoli",       k:"home",  c:"#199FD9"},
+  {l:"Napoli Away",           t:"Napoli",       k:"away",  c:"#FFFFFF"},
+  {l:"Roma Home",             t:"Roma",         k:"home",  c:"#8B1C10"},
+  {l:"Roma Away (Gold)",      t:"Roma",         k:"away",  c:"#C89B2A"},
+  {l:"Lazio Home",            t:"Lazio",        k:"home",  c:"#87CEEB"},
+  {l:"Fiorentina Home",       t:"Fiorentina",   k:"home",  c:"#702082"},
+  {l:"Atalanta Home",         t:"Atalanta",     k:"home",  c:"#1E3B8A"},
+  {l:"Bayern Munich Home",    t:"Bayern Munich",k:"home",  c:"#DC052D"},
+  {l:"Bayern Munich Away",    t:"Bayern Munich",k:"away",  c:"#FFFFFF"},
+  {l:"Bayern Munich 3rd",     t:"Bayern Munich",k:"third", c:"#0A2240"},
+  {l:"Borussia Dortmund Home",t:"Dortmund",     k:"home",  c:"#FDE100"},
+  {l:"Borussia Dortmund Away",t:"Dortmund",     k:"away",  c:"#111111"},
+  {l:"Bayer Leverkusen Home", t:"Leverkusen",   k:"home",  c:"#CC0000"},
+  {l:"Schalke Home",          t:"Schalke",      k:"home",  c:"#004B9B"},
+  {l:"Werder Bremen Home",    t:"Werder Bremen",k:"home",  c:"#009436"},
+  {l:"Eintracht Frankfurt",   t:"Frankfurt",    k:"home",  c:"#CC0000"},
+  {l:"RB Leipzig Home",       t:"RB Leipzig",   k:"home",  c:"#CC0000"},
+  {l:"PSG Home",              t:"PSG",          k:"home",  c:"#004170"},
+  {l:"PSG Away",              t:"PSG",          k:"away",  c:"#FFFFFF"},
+  {l:"Marseille Home",        t:"Marseille",    k:"home",  c:"#FFFFFF"},
+  {l:"Marseille Away (Blue)", t:"Marseille",    k:"away",  c:"#003399"},
+  {l:"Monaco Home",           t:"Monaco",       k:"home",  c:"#CC0000"},
+  {l:"Lyon Home",             t:"Lyon",         k:"home",  c:"#FFFFFF"},
+  {l:"Ajax Home",             t:"Ajax",         k:"home",  c:"#CC0000"},
+  {l:"Ajax Away",             t:"Ajax",         k:"away",  c:"#FFFFFF"},
+  {l:"Porto Home",            t:"Porto",        k:"home",  c:"#003399"},
+  {l:"Benfica Home",          t:"Benfica",      k:"home",  c:"#CC0000"},
+  {l:"Sporting CP Home",      t:"Sporting CP",  k:"home",  c:"#009033"},
+  {l:"Celtic Home",           t:"Celtic",       k:"home",  c:"#009933"},
+  {l:"Rangers Home",          t:"Rangers",      k:"home",  c:"#003399"},
+  {l:"Red Star Belgrade",     t:"Red Star",     k:"home",  c:"#CC0000"},
+  {l:"Galatasaray Home",      t:"Galatasaray",  k:"home",  c:"#CC0000"},
+  {l:"Galatasaray Away",      t:"Galatasaray",  k:"away",  c:"#FECC02"},
+  {l:"Fenerbahçe Home",       t:"Fenerbahçe",   k:"home",  c:"#FECC02"},
+  {l:"Besiktas Home",         t:"Besiktas",     k:"home",  c:"#111111"},
+  {l:"Shakhtar Donetsk",      t:"Shakhtar",     k:"home",  c:"#FF6B00"},
+  {l:"Zenit Home",            t:"Zenit",        k:"home",  c:"#003399"},
+  {l:"Anderlecht Home",       t:"Anderlecht",   k:"home",  c:"#702082"},
+];
+
+/* ══════════════════════════════════════════════════════════
+   TRANSLATIONS
+══════════════════════════════════════════════════════════ */
+const TRANSLATIONS = {
+  en:{
+    puzzle:"Puzzle", submit:"SUBMIT GUESS", attemptOf:(n,t)=>`ATTEMPT ${n} OF ${t}`,
+    attemptLbl:(n,t)=>`Attempt ${n} of ${t}`, gameOver:"Game over",
+    filledOf:(n,t)=>`${n} / ${t} filled`,
+    scorerRole:"Goal Scorer", scorerInfo:"The player who scored the winning goal",
+    gkRole:"Goalkeeper",      gkInfo:"The goalkeeper beaten by the shot",
+    scoreRole:"Final Score",  scoreInfo:"Full-time result (Home – Away)",
+    homeRole:"Winning Team",  homeInfo:"The team that won the match",
+    awayRole:"Losing Team",   awayInfo:"The team that lost the match",
+    nameLabel:"Name", jerseyLabel:"Jersey Number", kitLabel:"Kit Color",
+    scoreLabel:"Score", homeLabel:"Winner", awayLabel:"Loser",
+    gkColorLabel:"Goalkeeper Jersey Color",
+    scorerPh:"Scorer's full name", jerseyPh:"e.g. 9", gkPh:"Goalkeeper's full name",
+    scorePh:"e.g. 1-0", homePh:"e.g. Brazil", awayPh:"e.g. France",
+    kitPh:"— select kit color —", kitSearch:"Search team or color…", kitNone:"No results",
+    inspEmpty:"Click a <strong style=\"color:#94a3b8\">player circle</strong> or an <strong style=\"color:#94a3b8\">info card</strong> on the pitch to fill in its details",
+    scoreSvg:"SCORE", homeSvg:"WON", awaySvg:"LOST",
+    modalTitle:"Full Time", reviewBtn:"Review Answers",
+    msgPerfect1:"First attempt — perfect!", msgSolved:(n)=>`Solved in ${n} attempt${n>1?"s":""}!`,
+    msgOutstanding:"Outstanding — just a couple off!", msgGood:"Good effort, a few details missed.", msgTough:"Tough one — check the answers.",
+    lgTitle:"Diagram Legend", lgPaths:"Paths", lgPlayers:"Players", lgOther:"Other",
+    lgPass:"Pass / cross / run path", lgShot:"Shot trajectory", lgDir:"Shot direction indicator",
+    lgScorer:"Scorer — click to identify", lgGK:"Goalkeeper — click to identify",
+    lgOtherPlayer:"Other player on pitch", lgBall:"Ball position", lgAssist:"Assisting player"
+  },
+  es:{
+    puzzle:"Puzzle", submit:"ENVIAR RESPUESTA", attemptOf:(n,t)=>`INTENTO ${n} DE ${t}`,
+    attemptLbl:(n,t)=>`Intento ${n} de ${t}`, gameOver:"Juego terminado",
+    filledOf:(n,t)=>`${n} / ${t} completado`,
+    scorerRole:"Goleador", scorerInfo:"El jugador que marcó el gol decisivo",
+    gkRole:"Portero",      gkInfo:"El portero que recibió el gol",
+    scoreRole:"Resultado Final", scoreInfo:"Resultado al tiempo reglamentario (Local – Visitante)",
+    homeRole:"Equipo Ganador", homeInfo:"El equipo que ganó el partido",
+    awayRole:"Equipo Perdedor",awayInfo:"El equipo que perdió el partido",
+    nameLabel:"Nombre", jerseyLabel:"Número de Camiseta", kitLabel:"Color del Uniforme",
+    scoreLabel:"Marcador", homeLabel:"Ganador", awayLabel:"Perdedor",
+    gkColorLabel:"Color del Uniforme del Portero",
+    scorerPh:"Nombre completo del goleador", jerseyPh:"ej. 9", gkPh:"Nombre completo del portero",
+    scorePh:"ej. 1-0", homePh:"ej. Brasil", awayPh:"ej. Francia",
+    kitPh:"— seleccionar color —", kitSearch:"Buscar equipo o color…", kitNone:"Sin resultados",
+    inspEmpty:"Haz clic en un <strong style=\"color:#94a3b8\">círculo de jugador</strong> o en una <strong style=\"color:#94a3b8\">tarjeta</strong> del campo",
+    scoreSvg:"MARCADOR", homeSvg:"GANÓ", awaySvg:"PERDIÓ",
+    modalTitle:"Pitido Final", reviewBtn:"Ver Respuestas",
+    msgPerfect1:"¡Primer intento — perfecto!", msgSolved:(n)=>`¡Resuelto en ${n} intento${n>1?"s":""}!`,
+    msgOutstanding:"¡Sobresaliente — casi perfecto!", msgGood:"Buen esfuerzo, algunos detalles fallaron.", msgTough:"Difícil — comprueba las respuestas.",
+    lgTitle:"Leyenda del Diagrama", lgPaths:"Trayectorias", lgPlayers:"Jugadores", lgOther:"Otros",
+    lgPass:"Trayectoria del pase / centro", lgShot:"Trayectoria del disparo", lgDir:"Dirección del disparo",
+    lgScorer:"Goleador — clic para identificar", lgGK:"Portero — clic para identificar",
+    lgOtherPlayer:"Otro jugador en el campo", lgBall:"Posición del balón", lgAssist:"Jugador asistente"
+  },
+  ar:{
+    puzzle:"لغز", submit:"إرسال التخمين", attemptOf:(n,t)=>`المحاولة ${n} من ${t}`,
+    attemptLbl:(n,t)=>`المحاولة ${n} من ${t}`, gameOver:"انتهت اللعبة",
+    filledOf:(n,t)=>`${n} / ${t} مكتمل`,
+    scorerRole:"الهداف", scorerInfo:"اللاعب الذي سجّل الهدف",
+    gkRole:"حارس المرمى", gkInfo:"حارس المرمى الذي استقبل الهدف",
+    scoreRole:"النتيجة النهائية", scoreInfo:"نتيجة المباراة (المضيف – الزائر)",
+    homeRole:"الفريق الفائز",  homeInfo:"الفريق الذي فاز بالمباراة",
+    awayRole:"الفريق الخاسر",  awayInfo:"الفريق الذي خسر المباراة",
+    nameLabel:"الاسم", jerseyLabel:"رقم القميص", kitLabel:"لون القميص",
+    scoreLabel:"النتيجة", homeLabel:"الفائز", awayLabel:"الخاسر",
+    gkColorLabel:"لون قميص حارس المرمى",
+    scorerPh:"الاسم الكامل للهداف", jerseyPh:"مثال: 9", gkPh:"الاسم الكامل لحارس المرمى",
+    scorePh:"مثال: 1-0", homePh:"مثال: البرازيل", awayPh:"مثال: فرنسا",
+    kitPh:"— اختر لون القميص —", kitSearch:"ابحث عن فريق أو لون…", kitNone:"لا توجد نتائج",
+    inspEmpty:"انقر على <strong style=\"color:#94a3b8\">دائرة لاعب</strong> أو <strong style=\"color:#94a3b8\">بطاقة</strong> في الرسم لتملأها",
+    scoreSvg:"النتيجة", homeSvg:"فاز", awaySvg:"خسر",
+    modalTitle:"نهاية المباراة", reviewBtn:"مراجعة الإجابات",
+    msgPerfect1:"محاولة أولى — مثالي!", msgSolved:(n)=>`تم الحل في ${n} محاولة!`,
+    msgOutstanding:"ممتاز — تقريباً مثالي!", msgGood:"جهد جيد، بعض التفاصيل غير صحيحة.", msgTough:"صعب — تحقق من الإجابات.",
+    lgTitle:"مفتاح الرسم", lgPaths:"المسارات", lgPlayers:"اللاعبون", lgOther:"أخرى",
+    lgPass:"مسار التمريرة / العرضية", lgShot:"مسار التسديدة", lgDir:"اتجاه التسديدة",
+    lgScorer:"الهداف — انقر للتعرف", lgGK:"حارس المرمى — انقر للتعرف",
+    lgOtherPlayer:"لاعب آخر في الملعب", lgBall:"موقع الكرة", lgAssist:"لاعب الإسناد"
+  },
+  he:{
+    puzzle:"חידה", submit:"שלח ניחוש", attemptOf:(n,t)=>`ניסיון ${n} מתוך ${t}`,
+    attemptLbl:(n,t)=>`ניסיון ${n} מתוך ${t}`, gameOver:"המשחק נגמר",
+    filledOf:(n,t)=>`${n} / ${t} מולא`,
+    scorerRole:"מבקיע", scorerInfo:"השחקן שהבקיע את השער",
+    gkRole:"שוער",      gkInfo:"השוער שקיבל את השער",
+    scoreRole:"תוצאה סופית", scoreInfo:"תוצאת המשחק (בית – חוץ)",
+    homeRole:"הקבוצה הזוכה",  homeInfo:"הקבוצה שניצחה את המשחק",
+    awayRole:"הקבוצה המפסידה",awayInfo:"הקבוצה שהפסידה את המשחק",
+    nameLabel:"שם", jerseyLabel:"מספר חולצה", kitLabel:"צבע חולצה",
+    scoreLabel:"תוצאה", homeLabel:"זוכה", awayLabel:"מפסידה",
+    gkColorLabel:"צבע חולצת השוער",
+    scorerPh:"שמו המלא של המבקיע", jerseyPh:"לדוגמה: 9", gkPh:"שמו המלא של השוער",
+    scorePh:"לדוגמה: 1-0", homePh:"לדוגמה: ברזיל", awayPh:"לדוגמה: צרפת",
+    kitPh:"— בחר צבע חולצה —", kitSearch:"חפש קבוצה או צבע…", kitNone:"אין תוצאות",
+    inspEmpty:"לחץ על <strong style=\"color:#94a3b8\">עיגול שחקן</strong> או <strong style=\"color:#94a3b8\">כרטיס</strong> בתרשים",
+    scoreSvg:"תוצאה", homeSvg:"זכתה", awaySvg:"הפסידה",
+    modalTitle:"סיום", reviewBtn:"בדוק תשובות",
+    msgPerfect1:"ניסיון ראשון — מושלם!", msgSolved:(n)=>`פותר ב-${n} ניסיון${n>1?"ות":""}!`,
+    msgOutstanding:"מצוין — כמעט מושלם!", msgGood:"מאמץ טוב, כמה פרטים החסרו.", msgTough:"קשה — בדוק את התשובות.",
+    lgTitle:"מקרא הדיאגרמה", lgPaths:"נתיבים", lgPlayers:"שחקנים", lgOther:"אחר",
+    lgPass:"נתיב מסירה / קרוס", lgShot:"נתיב בעיטה", lgDir:"כיוון הבעיטה",
+    lgScorer:"מבקיע — לחץ לזיהוי", lgGK:"שוער — לחץ לזיהוי",
+    lgOtherPlayer:"שחקן נוסף במגרש", lgBall:"מיקום הכדור", lgAssist:"שחקן מבשל"
+  },
+  ru:{
+    puzzle:"Головоломка", submit:"ОТПРАВИТЬ ОТВЕТ", attemptOf:(n,t)=>`ПОПЫТКА ${n} ИЗ ${t}`,
+    attemptLbl:(n,t)=>`Попытка ${n} из ${t}`, gameOver:"Игра окончена",
+    filledOf:(n,t)=>`${n} / ${t} заполнено`,
+    scorerRole:"Автор гола", scorerInfo:"Игрок, забивший гол",
+    gkRole:"Вратарь",        gkInfo:"Вратарь, пропустивший гол",
+    scoreRole:"Итоговый счёт",   scoreInfo:"Результат матча (дома – в гостях)",
+    homeRole:"Победившая команда", homeInfo:"Команда, выигравшая матч",
+    awayRole:"Проигравшая команда",awayInfo:"Команда, проигравшая матч",
+    nameLabel:"Имя", jerseyLabel:"Номер футболки", kitLabel:"Цвет формы",
+    scoreLabel:"Счёт", homeLabel:"Победитель", awayLabel:"Проигравший",
+    gkColorLabel:"Цвет формы вратаря",
+    scorerPh:"Полное имя автора гола", jerseyPh:"напр. 9", gkPh:"Полное имя вратаря",
+    scorePh:"напр. 1-0", homePh:"напр. Бразилия", awayPh:"напр. Франция",
+    kitPh:"— выбрать цвет формы —", kitSearch:"Поиск команды или цвета…", kitNone:"Ничего не найдено",
+    inspEmpty:"Нажмите на <strong style=\"color:#94a3b8\">кружок игрока</strong> или <strong style=\"color:#94a3b8\">карточку</strong> на поле",
+    scoreSvg:"СЧЁТ", homeSvg:"ПОБЕДА", awaySvg:"ПОРАЖЕНИЕ",
+    modalTitle:"Финальный свисток", reviewBtn:"Посмотреть ответы",
+    msgPerfect1:"С первой попытки — идеально!", msgSolved:(n)=>`Решено за ${n} попытку!`,
+    msgOutstanding:"Отлично — почти всё правильно!", msgGood:"Хорошая попытка, несколько деталей упущено.", msgTough:"Сложно — проверьте ответы.",
+    lgTitle:"Условные обозначения", lgPaths:"Траектории", lgPlayers:"Игроки", lgOther:"Другое",
+    lgPass:"Траектория паса / навеса", lgShot:"Траектория удара", lgDir:"Направление удара",
+    lgScorer:"Автор гола — нажмите для идентификации", lgGK:"Вратарь — нажмите для идентификации",
+    lgOtherPlayer:"Другой игрок на поле", lgBall:"Положение мяча", lgAssist:"Игрок, сделавший пас"
+  },
+  zh:{
+    puzzle:"谜题", submit:"提交猜测", attemptOf:(n,t)=>`第${n}次尝试，共${t}次`,
+    attemptLbl:(n,t)=>`第${n}次 / 共${t}次`, gameOver:"游戏结束",
+    filledOf:(n,t)=>`已填写 ${n} / ${t}`,
+    scorerRole:"进球者", scorerInfo:"打入制胜球的球员",
+    gkRole:"守门员",     gkInfo:"被射破球门的守门员",
+    scoreRole:"最终比分", scoreInfo:"全场比分（主队 – 客队）",
+    homeRole:"胜队",     homeInfo:"赢得比赛的球队",
+    awayRole:"负队",     awayInfo:"输掉比赛的球队",
+    nameLabel:"姓名", jerseyLabel:"球衣号码", kitLabel:"球衣颜色",
+    scoreLabel:"比分", homeLabel:"胜者", awayLabel:"负者",
+    gkColorLabel:"守门员球衣颜色",
+    scorerPh:"进球者全名", jerseyPh:"例如：9", gkPh:"守门员全名",
+    scorePh:"例如：1-0", homePh:"例如：巴西", awayPh:"例如：法国",
+    kitPh:"— 选择球衣颜色 —", kitSearch:"搜索球队或颜色…", kitNone:"无结果",
+    inspEmpty:"点击场地图中的<strong style=\"color:#94a3b8\">球员圆圈</strong>或<strong style=\"color:#94a3b8\">信息卡</strong>",
+    scoreSvg:"比分", homeSvg:"胜", awaySvg:"负",
+    modalTitle:"终场", reviewBtn:"查看答案",
+    msgPerfect1:"一次成功——完美！", msgSolved:(n)=>`${n}次尝试解题成功！`,
+    msgOutstanding:"出色——几乎全对！", msgGood:"不错的尝试，有几个细节有误。", msgTough:"难题——查看答案吧。",
+    lgTitle:"图例", lgPaths:"路径", lgPlayers:"球员", lgOther:"其他",
+    lgPass:"传球/横传路径", lgShot:"射门轨迹", lgDir:"射门方向",
+    lgScorer:"进球者——点击识别", lgGK:"守门员——点击识别",
+    lgOtherPlayer:"场上其他球员", lgBall:"球的位置", lgAssist:"助攻球员"
+  },
+  ja:{
+    puzzle:"パズル", submit:"回答を送信", attemptOf:(n,t)=>`試み ${n} / ${t}`,
+    attemptLbl:(n,t)=>`試み ${n} / ${t}`, gameOver:"ゲーム終了",
+    filledOf:(n,t)=>`${n} / ${t} 入力済み`,
+    scorerRole:"得点者", scorerInfo:"ゴールを決めた選手",
+    gkRole:"ゴールキーパー", gkInfo:"シュートを受けたGK",
+    scoreRole:"最終スコア",    scoreInfo:"試合結果（ホーム – アウェイ）",
+    homeRole:"勝利チーム",     homeInfo:"試合に勝ったチーム",
+    awayRole:"敗北チーム",     awayInfo:"試合に負けたチーム",
+    nameLabel:"名前", jerseyLabel:"背番号", kitLabel:"ユニフォームの色",
+    scoreLabel:"スコア", homeLabel:"勝者", awayLabel:"敗者",
+    gkColorLabel:"GKユニフォームの色",
+    scorerPh:"得点者のフルネーム", jerseyPh:"例：9", gkPh:"GKのフルネーム",
+    scorePh:"例：1-0", homePh:"例：ブラジル", awayPh:"例：フランス",
+    kitPh:"— ユニフォームの色を選択 —", kitSearch:"チームまたは色を検索…", kitNone:"結果なし",
+    inspEmpty:"フィールド図の<strong style=\"color:#94a3b8\">選手サークル</strong>または<strong style=\"color:#94a3b8\">カード</strong>をクリック",
+    scoreSvg:"スコア", homeSvg:"勝", awaySvg:"負",
+    modalTitle:"試合終了", reviewBtn:"答えを確認",
+    msgPerfect1:"一発正解——完璧！", msgSolved:(n)=>`${n}回の試みで解答！`,
+    msgOutstanding:"素晴らしい——惜しい！", msgGood:"良い挑戦、いくつかの詳細が違いました。", msgTough:"難しかった——答えを確認しましょう。",
+    lgTitle:"凡例", lgPaths:"パス経路", lgPlayers:"選手", lgOther:"その他",
+    lgPass:"パス / クロスの経路", lgShot:"シュートの軌跡", lgDir:"シュートの方向",
+    lgScorer:"得点者——クリックして特定", lgGK:"GK——クリックして特定",
+    lgOtherPlayer:"その他の選手", lgBall:"ボールの位置", lgAssist:"アシスト選手"
+  }
+};
+
+const HINT_TRANS = {
+  es:{
+    goetze14:["Final de la Copa Mundial de la FIFA 2014 en el Maracanã","El goleador entró como suplente en la prórroga","El gol fue una volea a primer toque en el minuto 113"],
+    maradona86:["Cuartos de final de la Copa Mundial 1986 en Ciudad de México","El goleador regateó desde su propia mitad, superando a 5 jugadores antes de disparar","El goleador llevaba el dorsal 10 y ganó el Balón de Oro del torneo"],
+    carlosalberto70:["Final de la Copa Mundial de la FIFA 1970","El goleador era el capitán del equipo y jugaba de lateral derecho (RB)","El gol coronó una jugada colectiva considerada a menudo la mejor de la historia"],
+    vanbasten88:["Final del Campeonato Europeo de la UEFA 1988","El balón fue centrado desde la línea de fondo izquierda — el goleador remató de volea desde un ángulo casi imposible","Considerado uno de los mejores goles jamás marcados"],
+    bergkamp98:["Cuartos de final de la Copa Mundial 1998 en Marsella","El goleador recibió un pase de 50 metros, controló con un toque y disparó en un movimiento fluido","El gol se marcó en el minuto 90 para sellar la victoria 2-1"],
+    zidane02:["Final de la UEFA Champions League 2002 en Glasgow","El gol fue golpeado con el pie izquierdo, el más débil del goleador","El centro lo realizó el lateral izquierdo brasileño del equipo"],
+    aguero12:["Premier League inglesa, última jornada de la temporada 2011–12","El gol selló el título de liga por diferencia de goles en el minuto 93","El equipo local perdía 2-1 antes de marcar dos veces en el descuento"],
+    robertocarlos97:["Tournoi de France, junio de 1997","La posición del goleador era lateral izquierdo (LB)","El tiro libre desde 35 metros se curvó bruscamente alrededor de la barrera hacia el ángulo superior"],
+    pele58:["Final de la Copa Mundial de la FIFA 1958 en Estocolmo, Suecia","El goleador tenía 17 años — el más joven en marcar en una final de Copa del Mundo","El goleador controló el balón con el pecho sobre un defensor y lo remató de volea"],
+    james14:["Octavos de final de la Copa Mundial 2014 en Río de Janeiro","El goleador controló un centro a la altura del pecho y remató de volea con el pie izquierdo","El gol le valió al goleador la Bota de Oro del torneo (6 goles en total)"]
+  },
+  ar:{
+    goetze14:["نهائي كأس العالم 2014 في الماراكانا","دخل الهداف كبديل في الوقت الإضافي","كان الهدف تسديدة مرتدة بأول لمسة في الدقيقة 113"],
+    maradona86:["ربع نهائي كأس العالم 1986 في مكسيكو سيتي","راوغ الهداف من منتصف الملعب متجاوزاً 5 لاعبين قبل التسديد","ارتدى الهداف القميص رقم 10 وفاز بالكرة الذهبية للبطولة"],
+    carlosalberto70:["نهائي كأس العالم 1970","كان الهداف قائد الفريق ويلعب ظهيراً أيمناً (RB)","تُوِّج الهدف بهجمة جماعية رائعة تُعدّ الأفضل في تاريخ كرة القدم"],
+    vanbasten88:["نهائي بطولة أمم أوروبا 1988","جاء العرض من خط المرمى الأيسر وسدّد الهداف أوليكا من زاوية شبه مستحيلة","يُعدّ من أفضل الأهداف في تاريخ كرة القدم"],
+    bergkamp98:["ربع نهائي كأس العالم 1998 في مرسيليا","استقبل الهداف تمريرة 60 متراً والتقطها بلمسة واحدة وسدّد في حركة سلسة","سُجِّل الهدف في الدقيقة 90 لإغلاق النتيجة 2-1"],
+    zidane02:["نهائي دوري أبطال أوروبا 2002 في غلاسكو","جاءت التسديدة بالقدم اليسرى وهي قدمه الأضعف","جاء العرض من الظهير الأيسر البرازيلي للفريق"],
+    aguero12:["الدوري الإنجليزي الممتاز، الجولة الأخيرة من موسم 2011-12","حسم الهدف لقب الدوري بفارق الأهداف في الدقيقة 93","كان الفريق المضيف يخسر 2-1 قبل أن يسجل هدفين في الوقت الإضافي"],
+    robertocarlos97:["بطولة Tournoi de France، يونيو 1997","كان الهداف يلعب ظهيراً أيسراً (LB)","انحنت ركلة الحرة من 35 متراً بشدة حول السور نحو الزاوية العليا"],
+    pele58:["نهائي كأس العالم 1958 في ستوكهولم، السويد","كان الهداف في السابعة عشرة — الأصغر سناً في تاريخ نهائيات كأس العالم","تحكّم الهداف بالكرة بصدره فوق مدافع ثم أتمّها بأوليكا"],
+    james14:["دور الـ16 لكأس العالم 2014 في ريو دي جانيرو","تحكّم الهداف بعرضية على مستوى الصدر وأتمّها بأوليكا بقدمه اليسرى","أهّله الهدف لنيل جائزة الحذاء الذهبي للبطولة (6 أهداف في المجموع)"]
+  },
+  he:{
+    goetze14:["גמר גביע העולם 2014 במאראקאנא","המבקיע נכנס כשחקן חלופי בהארכה","הגול היה וולי בלמס ראשון בדקה ה-113"],
+    maradona86:["רבע גמר גביע העולם 1986 במקסיקו סיטי","המבקיע בישל מאמצע המגרש, עבר על 5 שחקנים לפני שירה","המבקיע ענד את החולצה מספר 10 וזכה בכדור הזהב של הטורניר"],
+    carlosalberto70:["גמר גביע העולם 1970","המבקיע היה קפטן הקבוצה ושיחק כבלם ימני (RB)","השער הכתיר מהלך קבוצתי מרהיב, הנחשב לרוב לשער הטוב בהיסטוריה"],
+    vanbasten88:["גמר אליפות אירופה 1988","הכדור הגיע בקרוס מקו הבסיס השמאלי — המבקיע ירה וולי מזווית כמעט בלתי אפשרית","נחשב לאחד מהשערים הגדולים שנכבשו אי פעם"],
+    bergkamp98:["רבע גמר גביע העולם 1998 במרסיי","המבקיע קיבל מסירה של 60 מטר, שלט בלמס אחד וירה בתנועה רציפה אחת","השער נכבש בדקה ה-90 לחתימה על ניצחון 2-1"],
+    zidane02:["גמר ליגת האלופות 2002 בגלאסגו","הגול נבקע ברגל שמאל, הרגל החלשה של המבקיע","המסירה הגיעה מהבלם השמאלי הברזילאי של הקבוצה"],
+    aguero12:["הפרמייר ליג האנגלי, סיבוב אחרון של עונת 2011-12","הגול חתם את אליפות הליגה בהפרש שערים בדקה ה-93","הקבוצה הביתית הפסידה 2-1 לפני שהבקיעה פעמיים בדקות הנוספות"],
+    robertocarlos97:["טורניר דה פראנס, יוני 1997","עמדת המבקיע הייתה בלם שמאלי (LB)","הבעיטה החופשית מ-35 מטר עקמה בחדות סביב החומה אל הפינה העליונה"],
+    pele58:["גמר גביע העולם 1958 בסטוקהולם, שוודיה","המבקיע היה בן 17 — הצעיר ביותר להבקיע בגמר גביע העולם","המבקיע שלט בכדור בחזה מעל מגן ובקע בוולי"],
+    james14:["שלב 16 הטוב ביותר של גביע העולם 2014 בריו דה ז'ניירו","המבקיע שלט בקרוס בגובה החזה ובקע בוולי ברגל שמאל","הגול הכשיר את המבקיע לזכייה בנעל הזהב של הטורניר (6 שערים בסה\"כ)"]
+  },
+  ru:{
+    goetze14:["Финал чемпионата мира по футболу 2014 на Маракане","Автор гола вышел на замену в дополнительное время","Гол — удар с лёта с первого касания на 113-й минуте"],
+    maradona86:["Четвертьфинал чемпионата мира 1986 в Мехико","Автор гола обошёл 5 игроков от своей половины поля перед ударом","Автор гола выступал под номером 10 и получил «Золотой мяч» турнира"],
+    carlosalberto70:["Финал чемпионата мира 1970","Автор гола был капитаном команды и играл правым защитником (ПЗ)","Гол завершил командную атаку, которую часто называют лучшим голом в истории"],
+    vanbasten88:["Финал чемпионата Европы УЕФА 1988","Мяч был подан с левой линии ворот — автор гола нанёс удар с лёта с почти невозможного угла","Считается одним из лучших голов в истории футбола"],
+    bergkamp98:["Четвертьфинал чемпионата мира 1998 в Марселе","Автор гола принял пас на 50 метров, обработал с одного касания и пробил в одном движении","Гол был забит на 90-й минуте и принёс победу 2:1"],
+    zidane02:["Финал Лиги чемпионов УЕФА 2002 в Глазго","Удар нанесён левой ногой — нерабочей ногой автора гола","Передача исходила от бразильского левого защитника команды"],
+    aguero12:["Английская Премьер-лига, последний тур сезона 2011–12","Гол принёс титул чемпиона по разнице мячей на 93-й минуте","Домашняя команда проигрывала 1:2 и забила дважды в компенсированное время"],
+    robertocarlos97:["Tournoi de France, июнь 1997 года","Позиция автора гола — левый защитник (ЛЗ)","Штрафной с 35 метров резко огибал стенку и залетел в верхний угол"],
+    pele58:["Финал чемпионата мира 1958 в Стокгольме, Швеция","Автору гола было 17 лет — самый молодой бомбардир в финале чемпионата мира","Автор гола скинул мяч грудью через защитника и добил с лёта"],
+    james14:["1/8 финала чемпионата мира 2014 в Рио-де-Жанейро","Автор гола принял кросс на грудь и нанёс удар с лёта левой ногой","Этот гол принёс автору звание лучшего бомбардира турнира (6 голов)"]
+  },
+  zh:{
+    goetze14:["2014年FIFA世界杯决赛，马拉卡纳球场","进球者在加时赛以替补身份出场","进球是第113分钟的第一触球凌空抽射"],
+    maradona86:["1986年FIFA世界杯四分之一决赛，墨西哥城","进球者从己方半场开始盘球，连过5名球员后射门","进球者身穿10号球衣，荣获本届赛事金球奖"],
+    carlosalberto70:["1970年FIFA世界杯决赛","进球者是球队队长，司职右后卫（RB）","该进球是一次精彩团队配合的最终一触，常被誉为史上最佳进球"],
+    vanbasten88:["1988年欧洲足球锦标赛决赛","球从左侧底线传中——进球者在禁区右侧以近乎不可能的角度凌空抽射","被广泛认为是有史以来最伟大的进球之一"],
+    bergkamp98:["1998年FIFA世界杯四分之一决赛，马赛","进球者接住一脚50米长传，一触球控制后一气呵成射门","进球发生在第90分钟，以2-1锁定胜局"],
+    zidane02:["2002年欧冠决赛，格拉斯哥","进球者用左脚（其弱脚）完成射门","传中者是球队的巴西籍左后卫"],
+    aguero12:["英格兰超级联赛，2011-12赛季最后一轮","该进球在第93分钟凭净胜球优势为主队锁定联赛冠军","主队一度以1-2落后，在补时阶段连进两球逆转"],
+    robertocarlos97:["法国锦标赛（Tournoi de France），1997年6月","进球者的位置是左后卫（LB）","35米外的任意球大幅弯曲绕过人墙，飞入右上角"],
+    pele58:["1958年FIFA世界杯决赛，斯德哥尔摩，瑞典","进球者年仅17岁——史上最年轻的世界杯决赛进球者","进球者胸部停球越过后卫，随即凌空抽射入网"],
+    james14:["2014年FIFA世界杯16强赛，里约热内卢","进球者用胸部接住传中球，随即用左脚凌空抽射","该进球为进球者赢得本届赛事金靴奖（共6球）"]
+  },
+  ja:{
+    goetze14:["2014年FIFAワールドカップ決勝、マラカナン競技場","得点者は延長戦に途中交代で出場","ゴールは113分目の初タッチでのボレーシュート"],
+    maradona86:["1986年FIFAワールドカップ準々決勝、メキシコシティ","得点者はハーフウェーライン付近から5人をかわしてシュートを打った","得点者は10番を着用し、大会最優秀選手賞（金のボール）を受賞した"],
+    carlosalberto70:["1970年FIFAワールドカップ決勝","得点者はチームのキャプテンで右サイドバック（RB）としてプレーした","このゴールは流れるようなチームプレーの締めくくりで、史上最高のゴールと称されることが多い"],
+    vanbasten88:["1988年UEFA欧州選手権決勝","左ゴールライン際からクロスが入り、得点者はペナルティエリア右側からほぼ不可能な角度でボレーシュートを決めた","史上最高のゴールの一つとして広く称えられている"],
+    bergkamp98:["1998年FIFAワールドカップ準々決勝、マルセイユ","得点者は50メートルのパスを受け、ワンタッチでコントロールし一連の動作でシュートを決めた","ゴールは90分に決まり、2-1の勝利を確定させた"],
+    zidane02:["2002年UEFAチャンピオンズリーグ決勝、グラスゴー","得点者は左足（利き足でない方）でシュートを打った","クロスはチームのブラジル人左サイドバックから送られた"],
+    aguero12:["イングランド・プレミアリーグ、2011-12シーズン最終節","このゴールは93分にゴール得失点差でリーグ優勝を決めた","ホームチームは1-2で負けていたが、アディショナルタイムに2点を決めて逆転した"],
+    robertocarlos97:["トゥルノワ・ドゥ・フランス、1997年6月","得点者のポジションは左サイドバック（LB）","35メートルから放たれたFKは壁を大きく曲がり、右上隅に突き刺さった"],
+    pele58:["1958年FIFAワールドカップ決勝、ストックホルム、スウェーデン","得点者は17歳で、ワールドカップ決勝史上最年少ゴールスコアラー","得点者はディフェンダーの頭上で胸トラップし、ボレーシュートを決めた"],
+    james14:["2014年FIFAワールドカップ決勝トーナメント1回戦、リオデジャネイロ","得点者は胸でクロスを収め、左足でボレーシュートを決めた","このゴールで得点者は大会得点王（計6ゴール）に輝いた"]
+  }
+};
+
+function getHints(puzzleId, lang) {
+  if (lang !== 'en' && HINT_TRANS[lang] && HINT_TRANS[lang][puzzleId])
+    return HINT_TRANS[lang][puzzleId];
+  return PUZZLES.find(p=>p.id===puzzleId).hints;
+}
+
+function getItems() {
+  const t = TRANSLATIONS[currentLang];
+  return {
+    goetze:{
+      role:t.scorerRole, info:t.scorerInfo,
+      fields:[
+        {key:"scorer",    label:t.nameLabel,    type:"text",   ph:t.scorerPh},
+        {key:"scorerNum", label:t.jerseyLabel,  type:"number", ph:t.jerseyPh},
+        {key:"scorerKit", label:t.kitLabel,     type:"kit",    stateKey:"kitGoetze"}
+      ]
+    },
+    romero:{
+      role:t.gkRole, info:t.gkInfo,
+      fields:[
+        {key:"gkName",  label:t.nameLabel,      type:"text", ph:t.gkPh},
+        {key:"gkColor", label:t.gkColorLabel,   type:"kit",  stateKey:"kitRomero"}
+      ]
+    },
+    score:{ role:t.scoreRole, info:t.scoreInfo,
+      fields:[{key:"score",    label:t.scoreLabel, type:"text", ph:t.scorePh}]},
+    home: { role:t.homeRole,  info:t.homeInfo,
+      fields:[{key:"homeTeam", label:t.homeLabel,  type:"text", ph:t.homePh}]},
+    away: { role:t.awayRole,  info:t.awayInfo,
+      fields:[{key:"awayTeam", label:t.awayLabel,  type:"text", ph:t.awayPh}]}
+  };
+}
+
+function rebuildLegend() {
+  const t = TRANSLATIONS[currentLang];
+  $("lgdHdr").textContent = t.lgTitle;
+  $("lgdBody").innerHTML = `
+    <div class="lgd-section">${t.lgPaths}</div>
+    <div class="lgd-item"><div class="lgd-icon"><svg width="40" height="14" viewBox="0 0 40 14"><line x1="2" y1="7" x2="38" y2="7" style="stroke:var(--pass-color)" stroke-width="2" stroke-dasharray="7,4" opacity=".85"/></svg></div><span>${t.lgPass}</span></div>
+    <div class="lgd-item"><div class="lgd-icon"><svg width="40" height="14" viewBox="0 0 40 14"><line x1="2" y1="7" x2="38" y2="7" style="stroke:var(--shot-color)" stroke-width="2" stroke-dasharray="7,4" opacity=".65"/></svg></div><span>${t.lgShot}</span></div>
+    <div class="lgd-item"><div class="lgd-icon"><svg width="40" height="14" viewBox="0 0 40 14"><line x1="2" y1="7" x2="29" y2="7" style="stroke:var(--accent)" stroke-width="2"/><polygon points="38,7 27,3 27,11" style="fill:var(--accent)"/></svg></div><span>${t.lgDir}</span></div>
+    <hr class="lgd-div"/>
+    <div class="lgd-section">${t.lgPlayers}</div>
+    <div class="lgd-item"><div class="lgd-icon"><svg width="40" height="34" viewBox="0 0 40 34"><circle cx="20" cy="17" r="13" fill="#4b5563" stroke="#6b7280" stroke-width="2"/><text x="20" y="22" text-anchor="middle" font-size="12" font-weight="900" fill="white">?</text></svg></div><span>${t.lgScorer}</span></div>
+    <div class="lgd-item"><div class="lgd-icon"><svg width="40" height="34" viewBox="0 0 40 34"><circle cx="20" cy="17" r="13" fill="#4b5563" stroke="#6b7280" stroke-width="2"/><text x="20" y="22" text-anchor="middle" font-size="12" font-weight="900" fill="white">?</text><circle cx="5" cy="9" r="4" fill="#e8c800"/><circle cx="35" cy="9" r="4" fill="#e8c800"/></svg></div><span>${t.lgGK}</span></div>
+    <div class="lgd-item"><div class="lgd-icon"><svg width="40" height="34" viewBox="0 0 40 34"><circle cx="20" cy="17" r="13" fill="#3a4a3e" stroke="#4a5e50" stroke-width="1.5" opacity=".8"/></svg></div><span>${t.lgOtherPlayer}</span></div>
+    <hr class="lgd-div"/>
+    <div class="lgd-section">${t.lgOther}</div>
+    <div class="lgd-item"><div class="lgd-icon"><svg width="40" height="22" viewBox="0 0 40 22"><g transform="translate(20,11)"><circle r="8" fill="#f5f5f5" stroke="#999" stroke-width="1"/><path d="M0,-3.6 L3.42,-1.11 L2.12,2.91 L-2.12,2.91 L-3.42,-1.11 Z" fill="#222"/><path d="M0,-3.6 Q0.4,-6 -0.16,-8" fill="none" stroke="#777" stroke-width="0.7" stroke-linecap="round"/><path d="M3.42,-1.11 Q5.6,-2 7.6,-1.44" fill="none" stroke="#777" stroke-width="0.7" stroke-linecap="round"/><path d="M2.12,2.91 Q4.4,4.64 3.84,7.36" fill="none" stroke="#777" stroke-width="0.7" stroke-linecap="round"/><path d="M-2.12,2.91 Q-4.4,4.64 -3.84,7.36" fill="none" stroke="#777" stroke-width="0.7" stroke-linecap="round"/><path d="M-3.42,-1.11 Q-5.6,-2 -7.6,-1.44" fill="none" stroke="#777" stroke-width="0.7" stroke-linecap="round"/></g></svg></div><span>${t.lgBall}</span></div>
+    <div class="lgd-item"><div class="lgd-icon"><svg width="40" height="20" viewBox="0 0 40 20"><rect x="4" y="4" width="32" height="12" rx="3" fill="#0f172a" opacity=".9"/><text x="20" y="14" text-anchor="middle" font-size="7" fill="#64748b" letter-spacing=".8">ASSIST</text></svg></div><span>${t.lgAssist}</span></div>`;
+}
+
+function applyLang(code) {
+  currentLang = code;
+  const t = TRANSLATIONS[code];
+  const isRTL = code==="ar" || code==="he";
+  document.documentElement.dir  = isRTL ? "rtl" : "ltr";
+  document.documentElement.lang = code;
+
+  // Static labels
+  sv("ppLbl", t.puzzle);
+  sv("svgScoreLbl", t.scoreSvg); sv("svgHomeLbl", t.homeSvg); sv("svgAwayLbl", t.awaySvg);
+  const ie = $("inspEmptyTxt"); if(ie) ie.innerHTML = t.inspEmpty;
+
+  // Dynamic components
+  updateProg();
+  updateAttemptPips();
+  buildPuzzleDrop();
+  $("puzzleDrop").value = currentPuzzleIdx;
+
+  // Hints for current puzzle
+  const puzzle = PUZZLES[currentPuzzleIdx];
+  $("hintsBar").innerHTML = getHints(puzzle.id, code).map(h=>`<span class="hint-chip">${h}</span>`).join("");
+
+  // Re-render inspector if open
+  if(selId) renderInsp(getItems()[selId]);
+
+  // Submit button text
+  const btn = $("submitBtn");
+  if(btn && !gameOver) btn.textContent = attemptNum===0 ? t.submit : t.attemptOf(attemptNum+1, 5);
+
+  // Legend + modal button
+  rebuildLegend();
+  const rb = $("reviewBtn"); if(rb) rb.textContent = t.reviewBtn;
+}
+
+/* ══════════════════════════════════════════════════════════
+   STATE
+══════════════════════════════════════════════════════════ */
+const G = { scorer:"", scorerNum:"", scorerKit:null, scorerColor:null, gkName:"", gkColor:null, score:"", homeTeam:"", awayTeam:"" };
+const kitState = { kitGoetze:null, kitRomero:null };
+let selId = null, activeKey = null, currentPuzzleIdx = 0;
+let attemptNum = 0, gameOver = false, fieldResult = {};
+let currentLang = "en";
+
+/* ══════════════════════════════════════════════════════════
+   PUZZLE LOADER
+══════════════════════════════════════════════════════════ */
+function buildPuzzleDrop() {
+  const pWord = TRANSLATIONS[currentLang].puzzle;
+  $("puzzleDrop").innerHTML = PUZZLES.map((p, i) =>
+    `<option value="${i}">${pWord} ${p.title}</option>`
+  ).join("");
+}
+
+function loadPuzzle(idx) {
+  currentPuzzleIdx = idx;
+  const puzzle = PUZZLES[idx];
+
+  Object.assign(G, { scorer:"", scorerNum:"", scorerKit:null, scorerColor:null, gkName:"", gkColor:null, score:"", homeTeam:"", awayTeam:"" });
+  kitState.kitGoetze = null; kitState.kitRomero = null;
+  selId = null; activeKey = null;
+
+  $("inspector").classList.remove("live");
+  $("inspEmpty").style.display = "";
+  const ib = $("inspBody"); ib.style.display = "none"; ib.innerHTML = "";
+
+  attemptNum = 0; gameOver = false; fieldResult = {};
+  updateAttemptPips();
+  updateProg();
+  const btn = $("submitBtn"); btn.disabled = false; btn.textContent = TRANSLATIONS[currentLang].submit;
+  sv("tScore","? – ?"); sv("tHome","???"); sv("tAway","???");
+
+  ["grp-score","grp-home","grp-away"].forEach(gid=>{
+    const r=document.querySelector(`#${gid} .cb`);
+    if(r){r.setAttribute("stroke","none");r.setAttribute("stroke-width","0");r.setAttribute("opacity",".9");}
+  });
+
+  $("svgDynamic").innerHTML = buildDynamicSVG(puzzle.svg);
+  $("hintsBar").innerHTML = getHints(puzzle.id, currentLang).map(h => `<span class="hint-chip">${h}</span>`).join("");
+  $("puzzleDrop").value = idx;
+}
+
+/* ══════════════════════════════════════════════════════════
+   SVG BUILDER — uses CSS variables for controllable colors
+══════════════════════════════════════════════════════════ */
+function buildDynamicSVG(s) {
+  let h = "";
+
+  if (s.crossPath)
+    h += `<path d="${s.crossPath}" fill="none" style="stroke:var(--pass-color)" stroke-width="1.5" stroke-dasharray="8,5" opacity=".75"/>`;
+  if (s.crossEnd)
+    h += `<circle cx="${s.crossEnd.cx}" cy="${s.crossEnd.cy}" r="4" style="fill:var(--pass-color)" opacity=".6"/>`;
+  if (s.shotPath)
+    h += `<path d="${s.shotPath}" fill="none" style="stroke:var(--shot-color)" stroke-width="1.8" stroke-dasharray="9,6" opacity=".55"/>`;
+  if (s.shotArrow) {
+    const a = s.shotArrow;
+    h += `<line x1="${a.x1}" y1="${a.y1}" x2="${a.x2}" y2="${a.y2}" style="stroke:var(--accent)" stroke-width="1.8" opacity=".8"/>`;
+    if (a.head) h += `<polygon points="${a.head}" style="fill:var(--accent)" opacity=".8"/>`;
+  }
+
+  for (const ep of (s.extras || [])) {
+    const r = ep.r || 17;
+    h += `<circle cx="${ep.cx}" cy="${ep.cy}" r="${r}" fill="#3a4a3e" stroke="#4a5e50" stroke-width="1.5" opacity=".7"/>`;
+    if (ep.label) {
+      const lw = 68, lx = ep.cx - lw / 2, ly = ep.cy + r + 4;
+      h += `<rect x="${lx}" y="${ly}" width="${lw}" height="15" rx="3" fill="#0f172a" opacity=".75"/>`;
+      h += `<text x="${ep.cx}" y="${ly + 11}" text-anchor="middle" font-size="8" fill="#64748b" letter-spacing=".8">${ep.label}</text>`;
+    }
+  }
+
+  const b = s.ball;
+  h += `<g transform="translate(${b.cx},${b.cy})">
+    <circle r="8" fill="#f5f5f5" stroke="#999" stroke-width="1"/>
+    <path d="M0,-3.6 L3.42,-1.11 L2.12,2.91 L-2.12,2.91 L-3.42,-1.11 Z" fill="#222"/>
+    <path d="M0,-3.6 Q0.4,-6 -0.16,-8" fill="none" stroke="#777" stroke-width="0.7" stroke-linecap="round"/>
+    <path d="M3.42,-1.11 Q5.6,-2 7.6,-1.44" fill="none" stroke="#777" stroke-width="0.7" stroke-linecap="round"/>
+    <path d="M2.12,2.91 Q4.4,4.64 3.84,7.36" fill="none" stroke="#777" stroke-width="0.7" stroke-linecap="round"/>
+    <path d="M-2.12,2.91 Q-4.4,4.64 -3.84,7.36" fill="none" stroke="#777" stroke-width="0.7" stroke-linecap="round"/>
+    <path d="M-3.42,-1.11 Q-5.6,-2 -7.6,-1.44" fill="none" stroke="#777" stroke-width="0.7" stroke-linecap="round"/>
+  </g>`;
+
+  const gk = s.gk, gkLY = gk.cy + gk.r + 4;
+  h += `<g class="cp" id="grp-romero" onclick="pick('romero')" filter="url(#sh)">
+    <circle cx="${gk.cx}" cy="${gk.cy}" r="${gk.r}" fill="#4b5563" stroke="#6b7280" stroke-width="2" id="cRomero"/>
+    <text x="${gk.cx}" y="${gk.cy+5}" text-anchor="middle" font-size="8" font-weight="700" fill="#94a3b8" letter-spacing="1">GK</text>
+    <circle cx="${gk.cx-22}" cy="${gk.cy-9}" r="5" fill="#e8c800" opacity=".8"/>
+    <circle cx="${gk.cx+22}" cy="${gk.cy-9}" r="5" fill="#e8c800" opacity=".8"/>
+    <rect x="${gk.cx-77}" y="${gkLY}" width="154" height="19" rx="4" fill="#0f172a" opacity=".9"/>
+    <text x="${gk.cx}" y="${gkLY+14}" text-anchor="middle" font-size="9.5" fill="#94a3b8" id="tRomeroName">??? (GK)</text>
+  </g>`;
+
+  const sc = s.scorer, scLY = sc.cy + sc.r + 4;
+  h += `<g class="cp" id="grp-goetze" onclick="pick('goetze')" filter="url(#sh)">
+    <circle cx="${sc.cx}" cy="${sc.cy}" r="${sc.r}" fill="#4b5563" stroke="#6b7280" stroke-width="2" id="cGoetze"/>
+    <text x="${sc.cx}" y="${sc.cy+6}" text-anchor="middle" font-size="15" font-weight="900" fill="#fff" id="tGoetzeN">?</text>
+    <rect x="${sc.cx-78}" y="${scLY}" width="156" height="19" rx="4" fill="#0f172a" opacity=".9"/>
+    <text x="${sc.cx}" y="${scLY+14}" text-anchor="middle" font-size="9.5" fill="#94a3b8" id="tGoetzeName">???</text>
+  </g>`;
+  return h;
+}
+
+/* ══════════════════════════════════════════════════════════
+   HELPERS
+══════════════════════════════════════════════════════════ */
+const $ = id => document.getElementById(id);
+function norm(s){ return s.trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[–—]/g,"-").replace(/\s+/g," "); }
+function isLight(h){ if(!h||h.length<7)return false; const r=parseInt(h.slice(1,3),16),g=parseInt(h.slice(3,5),16),b=parseInt(h.slice(5,7),16); return(r*299+g*587+b*114)/1000>185; }
+function sv(id,v){ const e=$(id); if(e) e.textContent=v; }
+function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+
+/* ── FUZZY MATCHING ── */
+function levenshtein(a, b) {
+  const m=a.length, n=b.length;
+  if (!m) return n; if (!n) return m;
+  const dp=Array.from({length:m+1},(_,i)=>[i]);
+  for (let j=0;j<=n;j++) dp[0][j]=j;
+  for (let i=1;i<=m;i++)
+    for (let j=1;j<=n;j++)
+      dp[i][j]=a[i-1]===b[j-1]?dp[i-1][j-1]:1+Math.min(dp[i-1][j],dp[i][j-1],dp[i-1][j-1]);
+  return dp[m][n];
+}
+function editThreshold(len){ return len<=5?1:len<=10?2:3; }
+function fuzzyEq(a,b){
+  if(!a||!b) return false;
+  if(a===b) return true;
+  const mx=Math.max(a.length,b.length);
+  return levenshtein(a,b)<=editThreshold(mx);
+}
+/* score: "1-0", "1 - 0", "1:0" all equivalent */
+function normScore(s){ return norm(s).replace(/\s*[-:]\s*/g,"-"); }
+
+/* ══════════════════════════════════════════════════════════
+   PICK / INSPECT
+══════════════════════════════════════════════════════════ */
+function pick(id) {
+  if (selId) { const old = $(`grp-${selId}`); if (old) old.classList.remove("sel"); }
+  selId = id;
+  const grp = $(`grp-${id}`); if (grp) grp.classList.add("sel");
+  $("inspector").classList.add("live");
+  $("inspEmpty").style.display = "none";
+  renderInsp(getItems()[id]);
+  $("inspBody").style.display = "block";
+}
+
+function renderInsp(item) {
+  let h = `<div class="insp-hdr"><div class="insp-role">${item.role}</div><div class="insp-info">${item.info}</div></div><div class="insp-body">`;
+  item.fields.forEach(f => {
+    const fc = fieldResult[f.key] ? ` fr-${fieldResult[f.key]}` : "";
+    h += `<div class="insp-field${fc}"><label>${f.label}</label>`;
+    if (f.type==="text")   h += `<input class="insp-input" type="text"   placeholder="${f.ph||""}" value="${esc(G[f.key]||"")}" oninput="upd('${f.key}',this.value)"/>`;
+    if (f.type==="number") h += `<input class="insp-input" type="number" min="1" max="99" placeholder="${f.ph||""}" value="${esc(G[f.key]||"")}" oninput="upd('${f.key}',this.value)"/>`;
+    if (f.type==="kit")  { activeKey=f.stateKey; h += kitHTML(f.stateKey); }
+    h += `</div>`;
+  });
+  h += `</div>`;
+  $("inspBody").innerHTML = h;
+  item.fields.forEach(f => { if (f.type==="kit") { filterKit("",f.stateKey); restoreKitDisplay(f.stateKey); } });
+}
+
+/* ══════════════════════════════════════════════════════════
+   KIT PICKER
+══════════════════════════════════════════════════════════ */
+function kitHTML(sk) {
+  const ko = kitState[sk];
+  const dotStyle = ko ? `background:${ko.c};border:2px solid ${isLight(ko.c)?"#64748b":ko.c}` : "";
+  return `<div class="kit-wrap">
+    <button class="kit-btn" type="button" onclick="toggleKit(event,'${sk}')">
+      <span class="kit-swatch" id="kDot-${sk}" style="${dotStyle}"></span>
+      <span class="${ko?"kit-lbl on":"kit-lbl"}" id="kLbl-${sk}">${ko?ko.l:TRANSLATIONS[currentLang].kitPh}</span>
+      <span class="kit-chev">▾</span>
+    </button>
+    <div class="kit-drop" id="kDrop-${sk}">
+      <input class="kit-search" type="text" placeholder="${TRANSLATIONS[currentLang].kitSearch}" oninput="filterKit(this.value,'${sk}')"/>
+      <div class="kit-list" id="kList-${sk}"></div>
+    </div>
+  </div>`;
+}
+
+function toggleKit(e, sk) {
+  e.stopPropagation();
+  const d = $(`kDrop-${sk}`); if (!d) return;
+  const open = d.classList.toggle("open");
+  if (open) { const s = d.querySelector(".kit-search"); if (s) { s.value=""; filterKit("",sk); s.focus(); } }
+}
+
+function filterKit(q, sk) {
+  const list = $(`kList-${sk}`); if (!list) return;
+  const lq = q.toLowerCase();
+  const rows = KDB.filter(k => !lq || k.l.toLowerCase().includes(lq) || k.t.toLowerCase().includes(lq));
+  if (!rows.length) { list.innerHTML=`<div style="padding:10px;color:#64748b;font-size:.8rem;text-align:center">${TRANSLATIONS[currentLang].kitNone}</div>`; return; }
+  const cur = kitState[sk];
+  list.innerHTML = rows.map(k => {
+    const bdr = isLight(k.c)?";border:1.5px solid #64748b":"";
+    const hi  = (cur&&cur.l===k.l)?" hi":"";
+    return `<div class="kit-row${hi}" onclick="chooseKit(${KDB.indexOf(k)},'${sk}')">
+      <span class="kit-dot" style="background:${k.c}${bdr}"></span>
+      <span class="kit-row-lbl">${k.l}</span>
+      <span class="kit-row-type">${k.k}</span>
+    </div>`;
+  }).join("");
+}
+
+function chooseKit(idx, sk) {
+  const k = KDB[idx];
+  kitState[sk] = k;
+  if (sk==="kitGoetze") {
+    G.scorerKit=k.k; G.scorerColor=k.c;
+    const c=$("cGoetze"); if(c){c.setAttribute("fill",k.c);c.setAttribute("stroke",isLight(k.c)?"#555":"#888");}
+  } else if (sk==="kitRomero") {
+    G.gkColor=k.c;
+    const c=$("cRomero"); if(c){c.setAttribute("fill",k.c);c.setAttribute("stroke",isLight(k.c)?"#555":"#888");}
+  }
+  restoreKitDisplay(sk);
+  $(`kDrop-${sk}`).classList.remove("open");
+  updateProg();
+}
+
+function restoreKitDisplay(sk) {
+  const ko=kitState[sk]; if(!ko) return;
+  const dot=$(`kDot-${sk}`),lbl=$(`kLbl-${sk}`);
+  if(dot){dot.style.background=ko.c;dot.style.border=`2px solid ${isLight(ko.c)?"#64748b":ko.c}`;}
+  if(lbl){lbl.textContent=ko.l;lbl.className="kit-lbl on";}
+}
+
+/* ══════════════════════════════════════════════════════════
+   GUESS / PROGRESS
+══════════════════════════════════════════════════════════ */
+function upd(key, val) {
+  G[key]=val;
+  if      (key==="scorer")    sv("tGoetzeName",val||"???");
+  else if (key==="scorerNum") sv("tGoetzeN",   val||"?");
+  else if (key==="gkName")    sv("tRomeroName",val?val+" (GK)":"??? (GK)");
+  else if (key==="score")     sv("tScore",     val||"? – ?");
+  else if (key==="homeTeam")  sv("tHome",      val||"???");
+  else if (key==="awayTeam")  sv("tAway",      val||"???");
+  updateProg();
+}
+
+const TOTAL=8;
+function countFilled(){
+  return [G.scorer,G.scorerNum,G.scorerKit,G.gkName,G.gkColor,G.score,G.homeTeam,G.awayTeam]
+    .filter(v=>v&&String(v).trim()).length;
+}
+function updateProg(){
+  const n=countFilled();
+  $("progLbl").textContent=TRANSLATIONS[currentLang].filledOf(n, TOTAL);
+  $("progFill").style.width=`${(n/TOTAL)*100}%`;
+}
+
+/* ══════════════════════════════════════════════════════════
+   SUBMIT + REVEAL
+══════════════════════════════════════════════════════════ */
+/* ── LOCALISED NAME / TEAM ALIASES ──
+   Keys must equal norm() of the canonical English answer.
+   .full → full-name equivalents  → correct match
+   .last → family/given-name only → partial match            */
+const NAME_ALTS = {
+  "mario gotze":{
+    full:["mario goetze","марио гётце","марио гетце","ماريو غوتسه","מריו גצה","马里奥格策","马里奥·格策","マリオゲッツェ","マリオ・ゲッツェ"],
+    last:["gotze","goetze","гётце","гетце","غوتسه","גצה","格策","ゲッツェ"]},
+  "diego maradona":{
+    full:["диего марадона","دييغو مارادونا","דייגו מרדונה","迭戈马拉多纳","迭戈·马拉多纳","ディエゴマラドーナ","ディエゴ・マラドーナ"],
+    last:["maradona","марадона","مارادونا","מרדונה","马拉多纳","マラドーナ"]},
+  "carlos alberto":{
+    full:["карлос альберто","كارلوس ألبرتو","קרלוס אלברטו","卡洛斯阿尔贝托","卡洛斯·阿尔贝托","カルロスアルベルト","カルロス・アルベルト"],
+    last:["alberto","альберто","ألبرتو","אלברטו","阿尔贝托","アルベルト"]},
+  "marco van basten":{
+    full:["марко ван бастен","ماركو فان باستن","מרקו ואן באסטן","马科范巴斯滕","马科·范巴斯滕","マルコファンバステン","マルコ・ファン・バステン"],
+    last:["van basten","basten","ван бастен","فان باستن","ואן באסטן","范巴斯滕","ファン・バステン","ファンバステン"]},
+  "dennis bergkamp":{
+    full:["деннис бергкамп","دنيس بيركامب","דניס ברגקמפ","丹尼斯博格坎普","丹尼斯·博格坎普","デニスベルフカンプ","デニス・ベルフカンプ"],
+    last:["bergkamp","бергкамп","بيركامب","ברגקמפ","博格坎普","ベルフカンプ"]},
+  "zinedine zidane":{
+    full:["зинедин зидан","زين الدين زيدان","זינדין זידאן","齐内丁齐达内","齐内丁·齐达内","ジネディーヌジダン","ジネディーヌ・ジダン"],
+    last:["zidane","зидан","زيدان","זידאן","齐达内","ジダン"]},
+  "sergio aguero":{
+    full:["серхио агуэро","سيرخيو أغويرو","סרחיו אגוארו","塞尔希奥阿圭罗","塞尔希奥·阿圭罗","セルヒオアグエロ","セルヒオ・アグエロ","sergio agüero"],
+    last:["aguero","agüero","агуэро","أغويرو","אגוארו","阿圭罗","アグエロ"]},
+  "roberto carlos":{
+    full:["роберто карлос","روبيرتو كارلوس","רוברטו קרלוס","罗伯托卡洛斯","罗伯托·卡洛斯","ロベルトカルロス","ロベルト・カルロス"],
+    last:["carlos","карлос","كارلوس","קרלוס","卡洛斯","カルロス"]},
+  "pele":{
+    full:["pelé","пеле","بيليه","פלה","贝利","ペレ"],
+    last:["pele","pelé","пеле","بيليه","פלה","贝利","ペレ"]},
+  "james rodriguez":{
+    full:["james rodríguez","хамес родригес","خاميس رودريغيث","חיימס רודריגס","哈梅斯罗德里格斯","哈梅斯·罗德里格斯","ハメスロドリゲス","ハメス・ロドリゲス"],
+    last:["rodriguez","rodríguez","родригес","رودريغيث","רודריגס","罗德里格斯","ロドリゲス"]},
+  /* — goalkeepers — */
+  "sergio romero":{
+    full:["серхио ромеро","سيرجيو روميرو","סרחיו רומרו","塞尔希奥罗梅罗","塞尔希奥·罗梅罗","セルヒオロメロ","セルヒオ・ロメロ"],
+    last:["romero","ромеро","روميرو","רומרו","罗梅罗","ロメロ"]},
+  "peter shilton":{
+    full:["питер шилтон","بيتر شيلتون","פיטר שילטון","彼得希尔顿","彼得·希尔顿","ピーターシルトン","ピーター・シルトン"],
+    last:["shilton","шилтон","شيلتون","שילטון","希尔顿","シルトン"]},
+  "enrico albertosi":{
+    full:["энрико альбертози","إنريكو ألبيرتوسي","אנריקו אלברטוזי","恩里科阿尔贝托西","恩里科·阿尔贝托西","エンリコアルベルトージ","エンリコ・アルベルトージ"],
+    last:["albertosi","альбертози","ألبيرتوسي","אלברטוזי","阿尔贝托西","アルベルトージ"]},
+  "rinat dasaev":{
+    full:["ринат дасаев","رينات داسييف","ריינט דסאייב","里纳特达萨耶夫","里纳特·达萨耶夫","リナットダサエフ","リナット・ダサエフ"],
+    last:["dasaev","дасаев","داسييف","דסאייב","达萨耶夫","ダサエフ"]},
+  "carlos roa":{
+    full:["карлос роа","كارلوس روا","קרלוס רואה","卡洛斯罗阿","卡洛斯·罗阿","カルロスロア","カルロス・ロア"],
+    last:["roa","роа","روا","רואה","罗阿","ロア"]},
+  "hans-jorg butt":{
+    full:["ханс-йорг бутт","هانس يورغ بوت","האנס-יורג בוט","汉斯约尔格布特","汉斯·约尔格·布特","ハンスイェルクブット","ハンス=イェルク・ブット","hans jorg butt","hans-jörg butt"],
+    last:["butt","бутт","بوت","בוט","布特","ブット"]},
+  "paddy kenny":{
+    full:["пэдди кенни","بادي كيني","פאדי קני","帕迪肯尼","帕迪·肯尼","パディケニー","パディ・ケニー"],
+    last:["kenny","кенни","كيني","קני","肯尼","ケニー"]},
+  "fabien barthez":{
+    full:["фабьен бартез","فابيان بارتيز","פביאן ברתז","法比安巴特斯","法比安·巴特斯","ファビアンバルテズ","ファビアン・バルテズ"],
+    last:["barthez","бартез","بارتيز","ברתז","巴特斯","バルテズ"]},
+  "kalle svensson":{
+    full:["калле свенссон","كالي سفنسون","קאלה סוונסון","卡勒斯文松","卡勒·斯文松","カッレスヴェンソン","カッレ・スヴェンソン"],
+    last:["svensson","свенссон","سفنسون","סוונסון","斯文松","スヴェンソン"]},
+  "fernando muslera":{
+    full:["фернандо муслера","فيرناندو موسليرا","פרנדו מוסלרה","费尔南多穆斯莱拉","费尔南多·穆斯莱拉","フェルナンドムスレーラ","フェルナンド・ムスレーラ"],
+    last:["muslera","муслера","موسليرا","מוסלרה","穆斯莱拉","ムスレーラ"]}
+};
+
+/* key = norm() of the canonical English team name in answers */
+const TEAM_ALTS = {
+  "germany":     ["alemania","deutschland","германия","ألمانيا","גרמניה","德国","ドイツ","allemagne","alemanha"],
+  "argentina":   ["аргентина","الأرجنتين","ארגנטינה","阿根廷","アルゼンチン"],
+  "brazil":      ["brasil","бразилия","البرازيل","ברזיל","巴西","ブラジル","bresil","brésil"],
+  "italy":       ["italia","италия","إيطاليا","איטליה","意大利","イタリア","italie"],
+  "netherlands": ["holanda","нидерланды","голландия","هولندا","הולנד","荷兰","オランダ","holland","nederland","pays-bas","paises bajos"],
+  "england":     ["inglaterra","англия","إنجلترا","אנגליה","英格兰","イングランド","angleterre"],
+  "ussr":        ["cccp","soviet union","советский союз","الاتحاد السوفيتي","ברית המועצות","苏联","ソ連","urss"],
+  "france":      ["франция","فرنسا","צרפת","法国","フランス","frankreich"],
+  "sweden":      ["suecia","швеция","السويد","שוודיה","瑞典","スウェーデン","suede","suède","schweden"],
+  "real madrid": ["реал мадрид","ريال مدريد","ריאל מדריד","皇家马德里","レアル・マドリード","レアルマドリード","皇马"],
+  "leverkusen":  ["bayer leverkusen","байер леверкузен","باير ليفركوزن","באייר לברקוזן","勒沃库森","バイエル・レバークーゼン","bayer"],
+  "man city":    ["manchester city","манчестер сити","مانشستر سيتي","מנצ'סטר סיטי","曼城","マンチェスター・シティ","曼彻斯特城","manchester"],
+  "qpr":         ["queens park rangers","куинз парк рейнджерс","كوينز بارك رينجرز","קווינס פארק ריינג'רס","女王公园巡游者","クイーンズ・パーク・レンジャーズ","queens park"],
+  "colombia":    ["колумбия","كولومبيا","קולומביה","哥伦比亚","コロンビア","colombie"],
+  "uruguay":     ["уругвай","أوروغواي","אורוגוואי","乌拉圭","ウルグアイ"]
+};
+
+function evalFields(G, Ans) {
+  function pName(g, a) {
+    const gn=norm(g), an=norm(a);
+    if (!gn) return "incorrect";
+    const alts = NAME_ALTS[an] || {full:[], last:[]};
+    const fullForms = [an, ...alts.full.map(norm)];
+    const lastForms = [an.split(/\s+/).pop(), ...alts.last.map(norm)];
+    // correct: fuzzy-match a full-name form, guard against short fragments matching long strings
+    if (fullForms.some(f => f && gn.length >= f.length*0.7 && fuzzyEq(gn, f))) return "correct";
+    // partial: fuzzy-match a family/last-name form
+    if (lastForms.some(f => f && fuzzyEq(gn, f))) return "partial";
+    // partial: substring of a full form (e.g. first name only in Latin script)
+    if (fullForms.some(f => f.includes(gn) && gn.length >= 4)) return "partial";
+    return "incorrect";
+  }
+  function pTeam(g, a) {
+    const gn=norm(g), an=norm(a);
+    if (!gn) return "incorrect";
+    const forms = [an, ...(TEAM_ALTS[an]||[]).map(norm)];
+    if (forms.some(f => fuzzyEq(gn, f))) return "correct";
+    if (forms.some(f => (f.includes(gn)||gn.includes(f)) && gn.length >= 3)) return "partial";
+    return "incorrect";
+  }
+  function pKit(gt, gc, at, ac) {
+    const tm=gt===at, cm=gc&&gc.toLowerCase()===ac.toLowerCase();
+    return (tm&&cm)?"correct":(tm||cm)?"partial":"incorrect";
+  }
+  return {
+    scorer:    pName(G.scorer, Ans.scorer),
+    scorerNum: String(G.scorerNum)===Ans.scorerNum ? "correct" : "incorrect",
+    scorerKit: pKit(G.scorerKit, G.scorerColor, Ans.scorerKit, Ans.scorerColor),
+    gkName:    pName(G.gkName, Ans.gkName),
+    gkColor:   G.gkColor&&G.gkColor.toLowerCase()===Ans.gkColor.toLowerCase() ? "correct" : "incorrect",
+    score:     normScore(G.score)===normScore(Ans.score) ? "correct" : "incorrect",
+    homeTeam:  pTeam(G.homeTeam, Ans.homeTeam),
+    awayTeam:  pTeam(G.awayTeam, Ans.awayTeam)
+  };
+}
+
+function applyAttemptFeedback() {
+  const COL={correct:"#22c55e", partial:"#f59e0b", incorrect:"#ef4444"};
+  function agg(keys){ return keys.every(r=>r==="correct")?"correct":keys.some(r=>r==="correct"||r==="partial")?"partial":"incorrect"; }
+
+  const cG=$("cGoetze");
+  if(cG){
+    const res=agg([fieldResult.scorer,fieldResult.scorerNum,fieldResult.scorerKit]);
+    cG.setAttribute("fill", G.scorerColor||"#4ade80");
+    cG.setAttribute("stroke", COL[res]); cG.setAttribute("stroke-width","3.5");
+  }
+  const cR=$("cRomero");
+  if(cR){
+    const res=agg([fieldResult.gkName,fieldResult.gkColor]);
+    cR.setAttribute("fill", G.gkColor||"#4ade80");
+    cR.setAttribute("stroke", COL[res]); cR.setAttribute("stroke-width","3.5");
+  }
+  [["grp-score",fieldResult.score],["grp-home",fieldResult.homeTeam],["grp-away",fieldResult.awayTeam]].forEach(([gid,res])=>{
+    const r=document.querySelector(`#${gid} .cb`);
+    if(r){r.setAttribute("stroke",COL[res]);r.setAttribute("stroke-width","2");r.setAttribute("opacity","1");}
+  });
+}
+
+function updateAttemptPips(pipClass) {
+  const pips=$("attemptPips"); if(!pips) return;
+  const cls=pipClass||"used";
+  pips.innerHTML=Array.from({length:5},(_,i)=>{
+    const c=i<attemptNum?` ${cls}`:"";
+    return `<span class="pip${c}"></span>`;
+  }).join("");
+  const tA=TRANSLATIONS[currentLang];
+  $("attemptLbl").textContent=gameOver?tA.gameOver:tA.attemptLbl(Math.min(attemptNum+1,5),5);
+}
+
+function doSubmit(){
+  const btn=$("submitBtn"); if(btn.disabled||gameOver) return;
+  btn.disabled=true;
+
+  attemptNum++;
+  const Ans=PUZZLES[currentPuzzleIdx].answer;
+  fieldResult=evalFields(G,Ans);
+
+  const allCorrect=Object.values(fieldResult).every(r=>r==="correct");
+  applyAttemptFeedback();
+  if(selId) renderInsp(getItems()[selId]);
+
+  const t=TRANSLATIONS[currentLang];
+  if(allCorrect||attemptNum>=5){
+    gameOver=true;
+    updateAttemptPips(allCorrect?"won":"lost");
+    // Final full reveal
+    const C=Object.fromEntries(Object.entries(fieldResult).map(([k,v])=>[k,v==="correct"]));
+    reveal(C,Ans);
+    const n=Object.values(C).filter(Boolean).length;
+    const em=["😬","😕","🤔","👏","🔥","⚽","🏆","🏆","🏆"];
+    $("mscr").textContent=`${n} / ${TOTAL}  ${em[Math.min(n,8)]}`;
+    const attStr=allCorrect?(attemptNum===1?t.msgPerfect1:t.msgSolved(attemptNum)):"";
+    $("mlbl").textContent=allCorrect?attStr:n>=7?t.msgOutstanding:n>=5?t.msgGood:t.msgTough;
+    $("modal").classList.add("show");
+  } else {
+    updateAttemptPips("used");
+    btn.disabled=false;
+    btn.textContent=t.attemptOf(attemptNum+1,5);
+  }
+}
+
+function reveal(C,Ans){
+  function setC(id,fill,ok){
+    const e=$(id); if(!e) return;
+    e.setAttribute("fill",fill);
+    const stroke=ok===undefined?(isLight(fill)?"#555":"#6b7280"):(ok?"#22c55e":"#ef4444");
+    e.setAttribute("stroke",stroke);
+    e.setAttribute("stroke-width",ok===undefined?"2":"3.5");
+  }
+  setC("cGoetze",Ans.scorerColor,C.scorer&&C.scorerNum&&C.scorerKit);
+  sv("tGoetzeN",Ans.scorerNum); sv("tGoetzeName",Ans.scorer);
+
+  setC("cRomero",Ans.gkColor,C.gkName&&C.gkColor);
+  sv("tRomeroName",Ans.gkName+" (GK)");
+
+  sv("tScore",Ans.score); sv("tHome",Ans.homeTeam); sv("tAway",Ans.awayTeam);
+
+  [["grp-score",C.score],["grp-home",C.homeTeam],["grp-away",C.awayTeam]].forEach(([gid,ok])=>{
+    const r=document.querySelector(`#${gid} .cb`);
+    if(r){r.setAttribute("stroke",ok?"#22c55e":"#ef4444");r.setAttribute("stroke-width","2");r.setAttribute("opacity","1");}
+  });
+}
+
+/* ══════════════════════════════════════════════════════════
+   ADMIN / THEME
+══════════════════════════════════════════════════════════ */
+const DEFAULTS={"--accent":"#facc15","--bg":"#0f172a","--surface":"#1e293b","--surface2":"#334155","--text":"#e2e8f0","--text-muted":"#94a3b8","--pitch-a":"#2a6038","--pitch-b":"#2c6840","--pass-color":"#fde100","--shot-color":"#ffffff"};
+
+function setVar(prop,val){document.documentElement.style.setProperty(prop,val);}
+function syncSwatch(id,val){const b=$(id);if(b)b.style.background=val;}
+function toggleAdmin(){$("adminPanel").classList.toggle("open");$("legendPanel").classList.remove("open");}
+function toggleLegend(){$("legendPanel").classList.toggle("open");$("adminPanel").classList.remove("open");}
+
+function resetTheme(){
+  Object.entries(DEFAULTS).forEach(([k,v])=>document.documentElement.style.setProperty(k,v));
+  const map={"sw-accent":"--accent","sw-bg":"--bg","sw-surface":"--surface","sw-surface2":"--surface2","sw-text":"--text","sw-muted":"--text-muted","sw-pa":"--pitch-b","sw-pb":"--pitch-a","sw-pass":"--pass-color","sw-shot":"--shot-color"};
+  Object.entries(map).forEach(([btnId,prop])=>{
+    syncSwatch(btnId,DEFAULTS[prop]);
+    const btn=$(btnId);if(btn){const inp=btn.querySelector("input");if(inp)inp.value=DEFAULTS[prop];}
+  });
+  updatePitchPattern();
+}
+function updatePitchPattern(){
+  const rects=document.querySelectorAll("#sg rect");
+  const cs=getComputedStyle(document.documentElement);
+  if(rects[0])rects[0].setAttribute("fill",cs.getPropertyValue("--pitch-a").trim());
+  if(rects[1])rects[1].setAttribute("fill",cs.getPropertyValue("--pitch-b").trim());
+}
+
+/* ══════════════════════════════════════════════════════════
+   INIT
+══════════════════════════════════════════════════════════ */
+document.addEventListener("click", e => {
+  if (!e.target.closest("#adminPanel")  && !e.target.closest("#adminToggle"))  $("adminPanel").classList.remove("open");
+  if (!e.target.closest("#legendPanel") && !e.target.closest("#legendBtn"))    $("legendPanel").classList.remove("open");
+  if (!e.target.closest(".kit-wrap")) document.querySelectorAll(".kit-drop.open").forEach(d=>d.classList.remove("open"));
+});
+
+buildPuzzleDrop();
+loadPuzzle(0);
+rebuildLegend();
+</script>
+</body>
+</html>
