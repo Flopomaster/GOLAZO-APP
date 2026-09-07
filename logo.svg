@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="סיקרט היטלר">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="38%" r="78%">
+      <stop offset="0" stop-color="#251b15"/>
+      <stop offset="1" stop-color="#0b0908"/>
+    </radialGradient>
+    <linearGradient id="disc" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#d0202a"/>
+      <stop offset="1" stop-color="#8d0d14"/>
+    </linearGradient>
+    <clipPath id="sq"><rect width="512" height="512" rx="114"/></clipPath>
+  </defs>
+  <g clip-path="url(#sq)">
+    <rect width="512" height="512" fill="url(#bg)"/>
+    <g fill="#c9a227" opacity=".16">
+      <path d="M256.0 232.0 L207.1 -285.7 L304.9 -285.7 Z"/>
+      <path d="M256.0 232.0 L520.7 -215.6 L599.9 -158.1 Z"/>
+      <path d="M256.0 232.0 L733.2 25.5 L763.5 118.6 Z"/>
+      <path d="M256.0 232.0 L763.5 345.4 L733.2 438.5 Z"/>
+      <path d="M256.0 232.0 L599.9 622.1 L520.7 679.6 Z"/>
+      <path d="M256.0 232.0 L304.9 749.7 L207.1 749.7 Z"/>
+      <path d="M256.0 232.0 L-8.7 679.6 L-87.9 622.1 Z"/>
+      <path d="M256.0 232.0 L-221.2 438.5 L-251.5 345.4 Z"/>
+      <path d="M256.0 232.0 L-251.5 118.6 L-221.2 25.5 Z"/>
+      <path d="M256.0 232.0 L-87.9 -158.1 L-8.7 -215.6 Z"/>
+    </g>
+    <circle cx="256" cy="232" r="146" fill="#0b0908" opacity=".55"/>
+    <circle cx="256" cy="232" r="134" fill="url(#disc)"/>
+    <circle cx="256" cy="232" r="134" fill="none" stroke="#c9a227" stroke-width="7"/>
+    <g fill="#0b0908">
+      <circle cx="256" cy="208" r="44"/>
+      <path d="M233 240 L279 240 L294 324 L218 324 Z"/>
+    </g>
+    <rect x="118" y="424" width="276" height="15" rx="7" fill="#c9a227"/>
+    <rect x="152" y="453" width="208" height="9" rx="4" fill="#c9a227" opacity=".55"/>
+  </g>
+  <rect x="9" y="9" width="494" height="494" rx="106" fill="none" stroke="#c9a227" stroke-width="11" opacity=".92"/>
+</svg>
